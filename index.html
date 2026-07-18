@@ -162,6 +162,22 @@
   .eodbtn{width:100%;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:15px;border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
   .eodsub{font-size:12px;color:var(--muted);text-align:center;margin:11px 6px 2px;line-height:1.5}
   .eodsub b{color:var(--navy)}
+  /* embedded EOD form */
+  .eodwrap{position:fixed;inset:0;z-index:70;background:var(--bg);display:none;flex-direction:column}
+  .eodwrap.show{display:flex}
+  .eodhd{background:var(--navy);color:#fff;padding:13px 14px;display:flex;align-items:center;gap:11px;flex-shrink:0}
+  .eodhd .t{flex:1;min-width:0}
+  .eodhd h3{margin:0;font-size:15px;line-height:1.2}
+  .eodhd p{margin:2px 0 0;font-size:11px;opacity:.82}
+  .eodhd .closeb{margin-left:0;background:rgba(255,255,255,.15);border:0;color:#fff;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0}
+  .eodframe{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff}
+  .eodframe iframe{width:100%;height:100%;min-height:100%;border:0;display:block;background:#fff}
+  .eodph{padding:46px 26px;text-align:center;color:var(--muted)}
+  .eodph .big{font-size:44px;margin-bottom:10px}
+  .eodph h3{color:var(--navy);font-size:18px;margin:0 0 8px}
+  .eodph p{font-size:13.5px;line-height:1.55;margin:0 auto 10px;max-width:340px}
+  .eodph b{color:var(--navy)}
+  .eodph .tag{display:inline-block;margin-top:6px;font-size:11.5px;background:#eef2f8;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:7px 13px}
 
   /* misc */
   .empty{text-align:center;color:var(--muted);font-size:13px;padding:44px 20px;line-height:1.5}
@@ -334,6 +350,15 @@
   <button class="go" onclick="submitLog()">Send to Marine HQ</button>
   <button class="cancel" onclick="closeModal('logModal')">Cancel</button>
 </div></div>
+
+<!-- Embedded EOD form (crew never leave the app) -->
+<div class="eodwrap" id="eodwrap">
+  <div class="eodhd">
+    <div class="t"><h3>End‑of‑Day Log</h3><p id="eodHdSub"></p></div>
+    <button class="closeb" onclick="closeEOD()">✕</button>
+  </div>
+  <div class="eodframe" id="eodframe"></div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -627,14 +652,26 @@ function signChecklist(id){
 
 /* ================= HOURS ================= */
 function openEOD(){
-  if(ME.eod){ window.open(ME.eod, "_blank", "noopener"); return; }
-  toast("Demo — this opens your personal EOD form, pre‑filled with your name.");
+  $("eodHdSub").textContent = ME.name + " · " + ME.vessels.join(" & ");
+  var f=$("eodframe");
+  if(ME.eod){
+    var src = ME.eod + (ME.eod.indexOf("?")>=0 ? "&" : "?") + "embedded=true";
+    f.innerHTML = '<iframe src="'+esc(src)+'" title="Marine HQ EOD form">Loading…</iframe>';
+  } else {
+    // No real link wired yet — show the framed in-app experience as a placeholder.
+    f.innerHTML =
+      '<div class="eodph"><div class="big">📋</div>'+
+      '<h3>Your EOD form loads right here</h3>'+
+      '<p>Filled in and submitted <b>inside the app</b> — the crew never leave the portal.</p>'+
+      '<p>Pre‑filled with <b>'+esc(ME.name)+'</b>, straight onto the vessel’s job card. It’s the same EOD form Marine HQ uses now.</p>'+
+      '<span class="tag">Add your EOD form link to switch on the live form</span></div>';
+  }
+  $("eodwrap").classList.add("show");
 }
+function closeEOD(){ $("eodwrap").classList.remove("show"); $("eodframe").innerHTML=""; }
 function renderHours(){
   $("todayDate").textContent=fmtDate(TODAY);
-  $("eodSub").innerHTML = ME.eod
-    ? "Opens your Marine HQ EOD form, pre‑filled as <b>"+esc(ME.name)+"</b>."
-    : "In the real app this opens <b>"+esc(ME.name)+"</b>'s personal EOD form (name pre‑filled). Same form you use now — nothing changes for the office.";
+  $("eodSub").innerHTML = "Opens right here in the app, pre‑filled as <b>"+esc(ME.name)+"</b> — no leaving the portal. Same EOD form Marine HQ uses now.";
   var logs=(LOGS[ME.id]||[]);
   var today=logs.filter(function(l){return l.date===TODAY;});
   var tot=today.reduce(function(a,l){return a+(Number(l.hours)||0);},0);
