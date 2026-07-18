@@ -172,19 +172,28 @@
   .tabbar .tb.on .ti{transform:translateY(-1px)}
 
   /* login */
-  .login{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,var(--navy),var(--navy2));display:flex;align-items:center;justify-content:center;padding:22px}
-  .login .card{background:#fff;border-radius:18px;padding:28px 22px;max-width:360px;width:100%;box-shadow:0 12px 44px rgba(0,0,0,.35)}
-  .login .glogo{width:46px;height:46px;border-radius:12px;background:var(--orange);color:#fff;font-weight:bold;font-size:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
-  .login h2{margin:0 0 4px;text-align:center;color:var(--navy);font-size:20px}
-  .login p.sub{margin:0 0 20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.45}
-  .login input{width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;font-size:15px;font-family:inherit}
-  .login .go{width:100%;margin-top:12px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:13px;border-radius:11px;cursor:pointer}
-  .login .demo{margin-top:22px;border-top:1px solid var(--line);padding-top:16px}
+  .login{position:fixed;inset:0;z-index:100;background:#101B3A;display:flex;flex-direction:column;overflow-y:auto}
+  .login .banner{width:100%;flex:0 0 auto}
+  .login .banner img{width:100%;display:block}
+  .login .hero{flex:1 0 auto;position:relative;display:flex;align-items:center;justify-content:center;padding:26px 20px calc(34px + env(safe-area-inset-bottom));
+    background:
+      linear-gradient(160deg, rgba(16,27,58,.86) 0%, rgba(26,43,92,.60) 50%, rgba(16,27,58,.95) 100%),
+      url("everywhen.jpg") center 40%/cover no-repeat,
+      #101B3A;}
+  .login .card{background:rgba(255,255,255,.98);border-radius:18px;box-shadow:0 20px 60px rgba(5,12,35,.55);padding:30px 24px 26px;max-width:384px;width:100%;text-align:center;border-top:4px solid var(--orange)}
+  .login .eyebrow{font-size:11px;font-weight:bold;letter-spacing:3px;color:var(--orange);margin-bottom:7px}
+  .login h2{margin:0 0 5px;color:var(--navy);font-size:27px;font-weight:900;letter-spacing:-.3px}
+  .login .tagline{margin:0 0 20px;color:var(--muted);font-size:13.5px;font-style:italic;line-height:1.45}
+  .login input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:14px;font-size:15px;font-family:inherit;text-align:center}
+  .login input:focus{outline:none;border-color:var(--orange)}
+  .login .go{width:100%;margin-top:12px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:14px;border-radius:11px;cursor:pointer}
+  .login .ownemail{font-size:12px;color:var(--muted);line-height:1.5;margin:14px 4px 0}
+  .login .ownemail b{color:var(--navy)}
+  .login .demo{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}
   .login .demo small{display:block;color:var(--muted);font-size:11.5px;text-align:center;margin-bottom:8px}
-  .login select{width:100%;border:1px solid var(--line);border-radius:11px;padding:12px;font-size:14px;font-family:inherit;background:#fff}
-  .sent{text-align:center}
+  .login select{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px;font-size:14px;font-family:inherit;background:#fff}
   .sent .tick{width:54px;height:54px;border-radius:50%;background:#e9f6f0;color:var(--ok);font-size:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
-  .sent .linkbtn{width:100%;margin-top:16px;border:0;background:var(--navy);color:#fff;font-weight:bold;font-size:14px;padding:13px;border-radius:11px;cursor:pointer}
+  .sent .linkbtn{width:100%;margin-top:16px;border:0;background:var(--navy);color:#fff;font-weight:bold;font-size:14px;padding:14px;border-radius:11px;cursor:pointer}
   .sent .back{margin-top:10px;border:0;background:transparent;color:var(--muted);font-size:12.5px;cursor:pointer;width:100%}
   .hidden{display:none!important}
 </style>
@@ -193,26 +202,30 @@
 
 <!-- ===================== LOGIN ===================== -->
 <div class="login" id="login">
-  <div class="card">
-    <div id="loginStep">
-      <div class="glogo">HQ</div>
-      <h2>Marine HQ Crew</h2>
-      <p class="sub">Enter your work email and we'll send you a one‑tap sign‑in link. No password to remember.</p>
-      <input id="emailIn" type="email" inputmode="email" placeholder="you@marinehq.com.au" autocomplete="email">
-      <button class="go" onclick="sendLink()">Send me a sign‑in link</button>
-      <div class="demo">
-        <small>Demo shortcut — preview as any crew member</small>
-        <select id="demoPick" onchange="demoLogin(this.value)">
-          <option value="">Choose a crew member…</option>
-        </select>
+  <div class="banner"><img src="banner.jpg" alt="Marine HQ — Vessel Management & Marine Services"></div>
+  <div class="hero">
+    <div class="card">
+      <div id="loginStep">
+        <div class="eyebrow">MARINE HQ · CREW</div>
+        <h2>Crew Portal</h2>
+        <p class="tagline">Your jobs, checklists &amp; hours — in your pocket.</p>
+        <input id="emailIn" type="email" inputmode="email" placeholder="your email" autocomplete="email">
+        <button class="go" onclick="sendLink()">Send me a sign‑in link</button>
+        <p class="ownemail">Use your <b>own</b> email — whatever you use day to day (Gmail, Outlook, iCloud…). No special address needed.</p>
+        <div class="demo">
+          <small>Demo shortcut — preview as any crew member</small>
+          <select id="demoPick" onchange="demoLogin(this.value)">
+            <option value="">Choose a crew member…</option>
+          </select>
+        </div>
       </div>
-    </div>
-    <div id="sentStep" class="sent hidden">
-      <div class="tick">✓</div>
-      <h2>Check your email</h2>
-      <p class="sub">We've sent a sign‑in link to<br><b id="sentEmail"></b>.<br>It keeps you signed in on this device for 90 days.</p>
-      <button class="linkbtn" onclick="openMagicLink()">Open sign‑in link (demo)</button>
-      <button class="back" onclick="backToLogin()">← Use a different email</button>
+      <div id="sentStep" class="sent hidden">
+        <div class="tick">✓</div>
+        <h2 style="font-size:23px">Check your email</h2>
+        <p class="tagline" style="font-style:normal">We've sent a one‑tap sign‑in link to<br><b id="sentEmail"></b>.<br>You'll stay signed in on this phone for 90 days.</p>
+        <button class="linkbtn" onclick="openMagicLink()">Open sign‑in link (demo)</button>
+        <button class="back" onclick="backToLogin()">← Use a different email</button>
+      </div>
     </div>
   </div>
 </div>
@@ -328,11 +341,11 @@ var TODAY = "2026-07-19";
 
 /* ---- crew (from the Rates Table) ---- */
 var CREW = [
-  { id:"jack",   name:"Jack Thompson", role:"Master",   email:"jack@marinehq.com.au",   vessels:["Everywhen","Andiamo"] },
-  { id:"bruce",  name:"Bruce Wilson",  role:"Engineer", email:"bruce@marinehq.com.au",  vessels:["Sheer Bliss","Abel Tasman III"] },
-  { id:"duncan", name:"Duncan Reid",   role:"Ops",      email:"duncan@marinehq.com.au", vessels:["Sea Ya","Ara Roa"] },
-  { id:"gracie", name:"Gracie Adams",  role:"Detailer", email:"gracie@marinehq.com.au", vessels:["Everywhen"] },
-  { id:"paloma", name:"Paloma Diaz",   role:"Detailer", email:"paloma@marinehq.com.au", vessels:["Andiamo"] }
+  { id:"jack",   name:"Jack Thompson", role:"Master",   email:"jack.thompson@gmail.com",  vessels:["Everywhen","Andiamo"] },
+  { id:"bruce",  name:"Bruce Wilson",  role:"Engineer", email:"brucew63@bigpond.com",     vessels:["Sheer Bliss","Abel Tasman III"] },
+  { id:"duncan", name:"Duncan Reid",   role:"Ops",      email:"duncan.reid@outlook.com",  vessels:["Sea Ya","Ara Roa"] },
+  { id:"gracie", name:"Gracie Adams",  role:"Detailer", email:"gracie.adams@gmail.com",   vessels:["Everywhen"] },
+  { id:"paloma", name:"Paloma Diaz",   role:"Detailer", email:"paloma.diaz@icloud.com",   vessels:["Andiamo"] }
 ];
 var VESSELS = ["Everywhen","Andiamo","Sheer Bliss","Abel Tasman III","Sea Ya","Ara Roa"];
 
@@ -433,9 +446,12 @@ function sendLink(){
 }
 function backToLogin(){ $("sentStep").classList.add("hidden"); $("loginStep").classList.remove("hidden"); }
 function openMagicLink(){
+  // Any email works — in the real app each crew member's own email (Gmail, Outlook,
+  // iCloud, work address, whatever they use) is linked to their crew profile.
   var c=CREW.filter(function(x){return x.email===pendingEmail;})[0];
-  if(!c){ toast("No crew found for that email — using the demo picker below is easiest"); backToLogin(); return; }
-  enter(c.id);
+  if(c){ enter(c.id); return; }
+  enter(CREW[0].id);
+  setTimeout(function(){ toast("Demo — signed in. Tap “Preview as” up top to switch crew."); }, 500);
 }
 function demoLogin(id){ if(id) enter(id); }
 function enter(id){
