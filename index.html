@@ -18,7 +18,9 @@
   /* ---------- header ---------- */
   header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:14px 14px calc(14px);position:sticky;top:0;z-index:30}
   header .inner{max-width:620px;margin:0 auto;display:flex;align-items:center;gap:10px}
-  .logo{width:34px;height:34px;border-radius:9px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;flex-shrink:0}
+  .appbanner{width:100%;background:#1B3A6B;line-height:0}
+  .appbanner img{width:100%;display:block}
+  .brandmark{height:30px;width:auto;display:block;flex-shrink:0}
   header h1{font-size:15px;margin:0;line-height:1.15}
   header p{margin:2px 0 0;font-size:11px;opacity:.82}
   .whoami{margin-left:auto;display:flex;align-items:center;gap:8px}
@@ -232,9 +234,10 @@
 
 <!-- ===================== APP ===================== -->
 <div id="app" class="hidden">
+  <div class="appbanner"><img src="banner.jpg" alt="Marine HQ — Vessel Management & Marine Services"></div>
   <header>
     <div class="inner">
-      <div class="logo">HQ</div>
+      <img class="brandmark" src="logo-mark.png" alt="Marine HQ">
       <div><h1 id="hdrTitle">Crew Portal</h1><p id="hdrSub">Your jobs, checklists & hours</p></div>
       <div class="whoami">
         <div class="avatar" id="hdrAv">JT</div>
