@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Marine HQ — Crew Portal</title>
+<style>
+  :root{
+    --navy:#1A2B5C; --navy2:#1B3A5C; --orange:#E87722; --orange2:#E8650A;
+    --ink:#22303f; --muted:#6b7a8d; --line:#e3e8ef; --bg:#f4f6f9; --card:#fff;
+    --ok:#1F7A54; --amber:#B77410; --red:#C0472A; --blue:#2A5DB0; --grey:#7a869a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%}
+  .wrap{max-width:620px;margin:0 auto;padding:0 14px calc(84px + env(safe-area-inset-bottom))}
+
+  /* ---------- header ---------- */
+  header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:14px 14px calc(14px);position:sticky;top:0;z-index:30}
+  header .inner{max-width:620px;margin:0 auto;display:flex;align-items:center;gap:10px}
+  .logo{width:34px;height:34px;border-radius:9px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;flex-shrink:0}
+  header h1{font-size:15px;margin:0;line-height:1.15}
+  header p{margin:2px 0 0;font-size:11px;opacity:.82}
+  .whoami{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold}
+  .previewbar{background:#12203f;color:#cdd8ea;font-size:11px;padding:7px 14px;display:flex;align-items:center;gap:8px;justify-content:center}
+  .previewbar select{background:#1d3160;color:#fff;border:1px solid #2b4372;border-radius:7px;padding:4px 8px;font-size:11px;font-family:inherit}
+
+  /* ---------- section headers ---------- */
+  .subbar{display:flex;align-items:baseline;gap:10px;padding:16px 2px 8px}
+  .subbar h2{font-size:17px;margin:0}
+  .subbar .count{font-size:12px;color:var(--muted)}
+  .hello{font-size:13px;color:var(--muted);padding:14px 2px 0}
+  .hello b{color:var(--ink)}
+  .chips{display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px}
+  .chip{white-space:nowrap;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:12px;padding:6px 12px;border-radius:20px;cursor:pointer}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+  /* ---------- job cards ---------- */
+  .job{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--grey);border-radius:12px;padding:13px 14px;margin-bottom:11px;cursor:pointer}
+  .job .vessel{font-size:11px;font-weight:bold;color:var(--orange);text-transform:uppercase;letter-spacing:.4px}
+  .job .top{display:flex;align-items:flex-start;gap:8px}
+  .job h3{font-size:15px;margin:3px 0 0;line-height:1.3}
+  .job .desc{font-size:12.5px;color:var(--muted);margin:5px 0 0;line-height:1.4}
+  .job .meta{display:flex;align-items:center;gap:12px;margin-top:10px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+  .badge{font-size:10.5px;font-weight:bold;padding:4px 9px;border-radius:20px;white-space:nowrap;color:#fff}
+  .s-todo{background:var(--grey)} .brd-todo{border-left-color:var(--grey)}
+  .s-inprog{background:var(--amber)} .brd-inprog{border-left-color:var(--amber)}
+  .s-parts{background:#a8641c} .brd-parts{border-left-color:#a8641c}
+  .s-done{background:var(--ok)} .brd-done{border-left-color:var(--ok)}
+  .prio{font-size:9.5px;font-weight:bold;color:#fff;background:var(--red);padding:3px 7px;border-radius:5px}
+
+  /* ---------- checklist cards ---------- */
+  .clcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:11px;cursor:pointer;display:flex;align-items:center;gap:12px}
+  .clcard .ic{width:40px;height:40px;border-radius:10px;background:#eef2f8;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .clcard .body{flex:1}
+  .clcard h3{margin:0;font-size:14.5px}
+  .clcard .sub{font-size:12px;color:var(--muted);margin-top:3px}
+  .prog{font-size:11px;font-weight:bold;color:var(--navy)}
+  .signed{font-size:11px;color:var(--ok);font-weight:bold}
+  .clbar{height:6px;background:#e6eaf0;border-radius:4px;overflow:hidden;margin-top:8px}
+  .clbar > i{display:block;height:100%;background:var(--ok);border-radius:4px;transition:.2s}
+
+  /* ---------- overlay / sheet ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(20,30,50,.5);display:none;z-index:40}
+  .overlay.show{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:620px;margin:0 auto;background:var(--bg);border-radius:18px 18px 0 0;max-height:94vh;overflow-y:auto;z-index:50;transform:translateY(100%);transition:transform .25s}
+  .sheet.show{transform:translateY(0)}
+  .sheet-hd{position:sticky;top:0;background:var(--navy);color:#fff;padding:14px 16px;border-radius:18px 18px 0 0;display:flex;align-items:flex-start;gap:10px;z-index:2}
+  .sheet-hd h3{margin:3px 0 0;font-size:16px;line-height:1.3}
+  .closeb{margin-left:auto;background:rgba(255,255,255,.15);border:0;color:#fff;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0}
+  .sec{background:#fff;margin:12px;border:1px solid var(--line);border-radius:12px;padding:14px}
+  .sec h4{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .sec p.body{font-size:13.5px;line-height:1.5;margin:0}
+
+  /* progress tracker */
+  .tracker{display:flex;align-items:flex-start;padding:2px 4px 0}
+  .tstep{flex:1;text-align:center}
+  .tdot{width:30px;height:30px;border-radius:50%;background:#e6eaf0;color:var(--muted);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:13px;font-weight:bold;border:2px solid #e6eaf0}
+  .tstep small{display:block;font-size:10.5px;margin-top:6px;color:var(--muted)}
+  .tstep.done .tdot{background:var(--ok);border-color:var(--ok);color:#fff}
+  .tstep.done small{color:var(--ok);font-weight:bold}
+  .tstep.now .tdot{background:var(--orange);border-color:var(--orange);color:#fff}
+  .tstep.now small{color:var(--orange);font-weight:bold}
+  .tbar{flex:0 0 24px;height:3px;background:#e6eaf0;margin-top:14px;border-radius:2px}
+  .tbar.fill{background:var(--ok)}
+
+  /* status control */
+  .statusrow{display:flex;align-items:center;gap:10px}
+  .statusrow label{font-size:12px;font-weight:bold;color:var(--muted)}
+  .statusrow select{flex:1;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:13.5px;font-weight:bold;color:var(--navy);font-family:inherit;background:#fff}
+  .donebtn{width:100%;margin-top:10px;border:0;background:var(--ok);color:#fff;font-weight:bold;font-size:13.5px;padding:11px;border-radius:10px;cursor:pointer}
+
+  /* photos */
+  .photos{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;flex-wrap:wrap}
+  .ph{flex:0 0 auto;width:92px}
+  .ph img,.ph .thumb{width:92px;height:70px;border-radius:9px;object-fit:cover;display:block}
+  .ph .thumb{display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;background:linear-gradient(135deg,#42607f,#2b4763)}
+  .ph small{display:block;font-size:9.5px;color:var(--muted);margin-top:3px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .addph{border:1px dashed var(--line);color:var(--muted);background:#fafbfc;width:92px;height:70px;border-radius:9px;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+
+  /* notes thread (crew <-> MHQ only) */
+  .wallnote{font-size:11px;color:var(--muted);background:#f0f4fa;border:1px dashed #cdd8ea;border-radius:9px;padding:8px 10px;margin-bottom:11px;line-height:1.4}
+  .msg{display:flex;gap:9px;margin-bottom:13px}
+  .av{flex:0 0 auto;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:bold}
+  .av.mhq{background:var(--navy)} .av.crew{background:var(--orange)}
+  .bub{flex:1}
+  .bub .who{font-size:11.5px;font-weight:bold}
+  .bub .who span{font-weight:normal;color:var(--muted);font-size:10.5px;margin-left:6px}
+  .bub .txt{font-size:13px;line-height:1.45;background:#f4f6f9;padding:8px 11px;border-radius:10px;margin-top:3px}
+  .msg.mine .txt{background:#fff1e6}
+  .composer{display:flex;gap:8px;margin-top:6px}
+  .composer input{flex:1;border:1px solid var(--line);border-radius:22px;padding:10px 14px;font-size:13px;font-family:inherit}
+  .composer button{border:0;background:var(--navy);color:#fff;padding:0 16px;border-radius:22px;font-weight:bold;font-size:13px;cursor:pointer}
+
+  /* checklist items */
+  .cli{display:flex;align-items:flex-start;gap:11px;padding:11px 2px;border-bottom:1px solid var(--line)}
+  .cli:last-child{border-bottom:0}
+  .cli .box{flex:0 0 auto;width:24px;height:24px;border-radius:7px;border:2px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;cursor:pointer;margin-top:1px}
+  .cli.on .box{background:var(--ok);border-color:var(--ok)}
+  .cli .lbl{flex:1;font-size:13.5px;line-height:1.4;padding-top:2px}
+  .cli.on .lbl{color:var(--muted);text-decoration:line-through}
+  .signoff{background:#f7f9fc;border:1px solid var(--line);border-radius:11px;padding:13px;margin:12px}
+  .signoff.done{background:#e9f6f0;border-color:#bfe3d2}
+  .signoff h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .signbtn{width:100%;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:14px;padding:12px;border-radius:10px;cursor:pointer}
+  .signbtn:disabled{background:#cdd5e0;cursor:default}
+  .signed-line{font-size:13px;color:var(--ok);font-weight:bold;text-align:center}
+
+  /* SOP */
+  .sopitem{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:11px;cursor:pointer;display:flex;align-items:center;gap:12px}
+  .sopitem .ic{width:38px;height:38px;border-radius:10px;background:#eef2f8;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+  .sopitem h3{margin:0;font-size:14px}
+  .sopitem .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .sopitem .chev{color:var(--muted);font-size:18px}
+  .sopbody{font-size:13.5px;line-height:1.6}
+  .sopbody h5{color:var(--navy);margin:16px 0 6px;font-size:13.5px}
+  .sopbody ul{margin:6px 0;padding-left:18px} .sopbody li{margin:4px 0}
+
+  /* modal */
+  .modal{position:fixed;inset:0;z-index:60;display:none;align-items:flex-end;justify-content:center}
+  .modal.show{display:flex}
+  .modal .card2{background:#fff;width:100%;max-width:620px;border-radius:18px 18px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom));max-height:94vh;overflow-y:auto}
+  .modal h3{margin:0 0 4px;font-size:17px;color:var(--navy)}
+  .modal .mhint{font-size:12px;color:var(--muted);margin:0 0 12px}
+  label.fld{display:block;font-size:12px;font-weight:bold;color:var(--muted);margin:12px 0 5px}
+  .fld-in,.fld-ta,select.fld-in{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;background:#fff}
+  .fld-ta{min-height:74px;resize:vertical}
+  .modal .go{width:100%;margin-top:18px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:13px;border-radius:11px;cursor:pointer}
+  .modal .cancel{width:100%;margin-top:8px;border:0;background:transparent;color:var(--muted);font-size:13px;padding:8px;cursor:pointer}
+
+  /* hours log */
+  .logrow{background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 13px;margin-bottom:10px}
+  .logrow .lt{display:flex;align-items:center;gap:8px}
+  .logrow .lv{font-size:11px;font-weight:bold;color:var(--orange);text-transform:uppercase;letter-spacing:.4px}
+  .logrow .lh{margin-left:auto;font-size:13px;font-weight:bold;color:var(--navy)}
+  .logrow .ld{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .daytotal{background:var(--navy);color:#fff;border-radius:11px;padding:12px 14px;display:flex;align-items:center;margin-bottom:14px}
+  .daytotal b{font-size:18px} .daytotal span{margin-left:auto;font-size:12px;opacity:.85}
+
+  /* misc */
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:44px 20px;line-height:1.5}
+  .fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:35;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:14px;padding:13px 18px;border-radius:30px;box-shadow:0 6px 18px rgba(232,119,34,.4);cursor:pointer}
+  .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:24px;font-size:13px;font-weight:bold;box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;transition:.25s;z-index:80;max-width:90%;text-align:center;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* bottom nav */
+  .tabbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:36;padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar .tb{flex:1;border:0;background:transparent;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--muted);font-size:10.5px;font-weight:bold}
+  .tabbar .tb .ti{font-size:19px;line-height:1}
+  .tabbar .tb.on{color:var(--navy)}
+  .tabbar .tb.on .ti{transform:translateY(-1px)}
+
+  /* login */
+  .login{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,var(--navy),var(--navy2));display:flex;align-items:center;justify-content:center;padding:22px}
+  .login .card{background:#fff;border-radius:18px;padding:28px 22px;max-width:360px;width:100%;box-shadow:0 12px 44px rgba(0,0,0,.35)}
+  .login .glogo{width:46px;height:46px;border-radius:12px;background:var(--orange);color:#fff;font-weight:bold;font-size:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .login h2{margin:0 0 4px;text-align:center;color:var(--navy);font-size:20px}
+  .login p.sub{margin:0 0 20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.45}
+  .login input{width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;font-size:15px;font-family:inherit}
+  .login .go{width:100%;margin-top:12px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:13px;border-radius:11px;cursor:pointer}
+  .login .demo{margin-top:22px;border-top:1px solid var(--line);padding-top:16px}
+  .login .demo small{display:block;color:var(--muted);font-size:11.5px;text-align:center;margin-bottom:8px}
+  .login select{width:100%;border:1px solid var(--line);border-radius:11px;padding:12px;font-size:14px;font-family:inherit;background:#fff}
+  .sent{text-align:center}
+  .sent .tick{width:54px;height:54px;border-radius:50%;background:#e9f6f0;color:var(--ok);font-size:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .sent .linkbtn{width:100%;margin-top:16px;border:0;background:var(--navy);color:#fff;font-weight:bold;font-size:14px;padding:13px;border-radius:11px;cursor:pointer}
+  .sent .back{margin-top:10px;border:0;background:transparent;color:var(--muted);font-size:12.5px;cursor:pointer;width:100%}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div class="login" id="login">
+  <div class="card">
+    <div id="loginStep">
+      <div class="glogo">HQ</div>
+      <h2>Marine HQ Crew</h2>
+      <p class="sub">Enter your work email and we'll send you a one‑tap sign‑in link. No password to remember.</p>
+      <input id="emailIn" type="email" inputmode="email" placeholder="you@marinehq.com.au" autocomplete="email">
+      <button class="go" onclick="sendLink()">Send me a sign‑in link</button>
+      <div class="demo">
+        <small>Demo shortcut — preview as any crew member</small>
+        <select id="demoPick" onchange="demoLogin(this.value)">
+          <option value="">Choose a crew member…</option>
+        </select>
+      </div>
+    </div>
+    <div id="sentStep" class="sent hidden">
+      <div class="tick">✓</div>
+      <h2>Check your email</h2>
+      <p class="sub">We've sent a sign‑in link to<br><b id="sentEmail"></b>.<br>It keeps you signed in on this device for 90 days.</p>
+      <button class="linkbtn" onclick="openMagicLink()">Open sign‑in link (demo)</button>
+      <button class="back" onclick="backToLogin()">← Use a different email</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app" class="hidden">
+  <header>
+    <div class="inner">
+      <div class="logo">HQ</div>
+      <div><h1 id="hdrTitle">Crew Portal</h1><p id="hdrSub">Your jobs, checklists & hours</p></div>
+      <div class="whoami">
+        <div class="avatar" id="hdrAv">JT</div>
+      </div>
+    </div>
+  </header>
+  <div class="previewbar" id="previewBar">
+    <span>👀 Preview as</span>
+    <select id="crewSwitch" onchange="switchCrew(this.value)"></select>
+    <span style="opacity:.7">(locked to your login in the real app)</span>
+  </div>
+
+  <div class="wrap">
+    <!-- JOBS -->
+    <div id="tab-jobs">
+      <div class="hello" id="jobsHello"></div>
+      <div class="subbar"><h2>My jobs</h2><span class="count" id="jobsCount"></span></div>
+      <div class="chips" id="jobChips"></div>
+      <div id="jobList"></div>
+    </div>
+
+    <!-- CHECKLISTS -->
+    <div id="tab-check" class="hidden">
+      <div class="subbar"><h2>Checklists</h2><span class="count" id="clCount"></span></div>
+      <p class="hello">Work through a checklist, tick each item, then sign it off. Tap <b>the SOP</b> tab any time for how‑to detail.</p>
+      <div id="clList"></div>
+    </div>
+
+    <!-- HOURS -->
+    <div id="tab-hours" class="hidden">
+      <div class="subbar"><h2>Log hours</h2><span class="count">End of day</span></div>
+      <p class="hello">Log your hours and what you did. This goes straight to Marine HQ and onto the vessel's job card — same as the EOD form.</p>
+      <div class="daytotal"><div><b id="todayHrs">0.0</b> hrs</div><span id="todayDate"></span></div>
+      <button class="go" style="width:100%;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:13px;border-radius:11px;cursor:pointer;margin-bottom:16px" onclick="openLog()">+ Log an end‑of‑day entry</button>
+      <div id="logList"></div>
+    </div>
+
+    <!-- SOP -->
+    <div id="tab-sop" class="hidden">
+      <div class="subbar"><h2>SOP &amp; guides</h2></div>
+      <p class="hello">Marine HQ's standard operating procedures. Tap any section to read it, right here on your phone.</p>
+      <div id="sopList"></div>
+    </div>
+  </div>
+
+  <button class="fab hidden" id="fab" onclick="openRaise()">+ Raise a job</button>
+
+  <nav class="tabbar">
+    <button class="tb on" data-tab="jobs" onclick="go('jobs')"><span class="ti">🧰</span>Jobs</button>
+    <button class="tb" data-tab="check" onclick="go('check')"><span class="ti">✅</span>Checklists</button>
+    <button class="tb" data-tab="hours" onclick="go('hours')"><span class="ti">⏱️</span>Hours</button>
+    <button class="tb" data-tab="sop" onclick="go('sop')"><span class="ti">📖</span>SOP</button>
+  </nav>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
+
+<!-- Raise a job modal -->
+<div class="modal" id="raiseModal"><div class="card2">
+  <h3>Raise a job</h3>
+  <p class="mhint">Spotted something that needs doing? Send it to Marine HQ — they'll review and schedule it.</p>
+  <label class="fld">Vessel</label>
+  <select class="fld-in" id="r_vessel"></select>
+  <label class="fld">What needs doing?</label>
+  <input class="fld-in" id="r_title" placeholder="e.g. Bilge pump float switch sticking">
+  <label class="fld">Detail (optional)</label>
+  <textarea class="fld-ta" id="r_desc" placeholder="Where it is, what you noticed…"></textarea>
+  <label class="fld">Photos (optional)</label>
+  <input type="file" id="r_photos" accept="image/*" multiple>
+  <button class="go" onclick="submitRaise()">Send to Marine HQ</button>
+  <button class="cancel" onclick="closeModal('raiseModal')">Cancel</button>
+</div></div>
+
+<!-- Log hours modal -->
+<div class="modal" id="logModal"><div class="card2">
+  <h3>End‑of‑day log</h3>
+  <p class="mhint">Goes to Marine HQ and onto the vessel's job card.</p>
+  <label class="fld">Vessel</label>
+  <select class="fld-in" id="l_vessel"></select>
+  <label class="fld">Date</label>
+  <input class="fld-in" id="l_date" type="date">
+  <label class="fld">Hours</label>
+  <input class="fld-in" id="l_hours" inputmode="decimal" placeholder="e.g. 7.5">
+  <label class="fld">What you did</label>
+  <textarea class="fld-ta" id="l_desc" placeholder="e.g. Serviced davit winch, greased and load‑tested"></textarea>
+  <label class="fld">Products used from MHQ stock (optional)</label>
+  <input class="fld-in" id="l_prod" placeholder="e.g. 2x winch grease, rags">
+  <button class="go" onclick="submitLog()">Send to Marine HQ</button>
+  <button class="cancel" onclick="closeModal('logModal')">Cancel</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   Marine HQ — Crew Portal  (SANDBOX DEMO)
+   Self-contained, in-memory sample data. No live connection.
+   Crew see ONLY jobs assigned to them. No $ / quotes / owner
+   thread — Marine HQ sits between crew and owner.
+   ========================================================= */
+
+var TODAY = "2026-07-19";
+
+/* ---- crew (from the Rates Table) ---- */
+var CREW = [
+  { id:"jack",   name:"Jack Thompson", role:"Master",   email:"jack@marinehq.com.au",   vessels:["Everywhen","Andiamo"] },
+  { id:"bruce",  name:"Bruce Wilson",  role:"Engineer", email:"bruce@marinehq.com.au",  vessels:["Sheer Bliss","Abel Tasman III"] },
+  { id:"duncan", name:"Duncan Reid",   role:"Ops",      email:"duncan@marinehq.com.au", vessels:["Sea Ya","Ara Roa"] },
+  { id:"gracie", name:"Gracie Adams",  role:"Detailer", email:"gracie@marinehq.com.au", vessels:["Everywhen"] },
+  { id:"paloma", name:"Paloma Diaz",   role:"Detailer", email:"paloma@marinehq.com.au", vessels:["Andiamo"] }
+];
+var VESSELS = ["Everywhen","Andiamo","Sheer Bliss","Abel Tasman III","Sea Ya","Ara Roa"];
+
+/* ---- jobs (assignedTo = crew id) ---- */
+var JOBS = [
+  { id:"J1", vessel:"Everywhen", assignedTo:"jack", title:"Service port davit winch",
+    desc:"6‑monthly service on the port davit winch — strip, grease, load test to SWL.",
+    status:"inprog", priority:false,
+    photos:[{name:"winch-before.jpg",thumb:true},{name:"gearbox.jpg",thumb:true}],
+    thread:[ {who:"Marine HQ",role:"mhq",text:"Grease is in the forward lazarette. Load test to SWL and note the reading.",when:"18 Jul"},
+             {who:"Jack Thompson",role:"crew",text:"On it — will have it done by lunch.",when:"18 Jul"} ] },
+  { id:"J2", vessel:"Everywhen", assignedTo:"jack", title:"Check anchor washdown pump",
+    desc:"Owner reported weak flow at the anchor washdown. Check pump, strainer and hose run.",
+    status:"todo", priority:true, photos:[], thread:[] },
+  { id:"J3", vessel:"Andiamo", assignedTo:"jack", title:"Reseal passerelle hydraulic ram",
+    desc:"Weeping seal on the passerelle ram. Reseal, bleed and function test.",
+    status:"parts", priority:false,
+    photos:[{name:"ram-leak.jpg",thumb:true}],
+    thread:[ {who:"Marine HQ",role:"mhq",text:"Seal kit ordered — should land Wednesday. Leave it capped off until then.",when:"17 Jul"} ] },
+  { id:"J4", vessel:"Everywhen", assignedTo:"gracie", title:"Polish hull topsides — port side",
+    desc:"Cut & polish port topsides, boot stripe to gunwale. Two‑stage, then sealant.",
+    status:"todo", priority:false, photos:[], thread:[] },
+  { id:"J5", vessel:"Andiamo", assignedTo:"paloma", title:"Full interior detail before charter",
+    desc:"Deep interior detail ahead of Saturday's charter — cabins, heads, galley, saloon.",
+    status:"inprog", priority:true, photos:[{name:"saloon.jpg",thumb:true}], thread:[] },
+  { id:"J6", vessel:"Sheer Bliss", assignedTo:"bruce", title:"Antifoul bow‑thruster tunnel",
+    desc:"Growth in the bow‑thruster tunnel. Clean back and re‑coat with antifoul.",
+    status:"inprog", priority:false, photos:[], thread:[] },
+  { id:"J7", vessel:"Abel Tasman III", assignedTo:"bruce", title:"Watermaker — replace pre‑filters",
+    desc:"Replace 5µm and 20µm pre‑filters, flush membrane, log TDS.",
+    status:"done", priority:false, photos:[{name:"filters.jpg",thumb:true}],
+    thread:[ {who:"Bruce Wilson",role:"crew",text:"Done — TDS reading 180ppm, all good.",when:"16 Jul"},
+             {who:"Marine HQ",role:"mhq",text:"Nice one, thanks Bruce.",when:"16 Jul"} ] },
+  { id:"J8", vessel:"Sea Ya", assignedTo:"duncan", title:"Reseal saloon window — starboard",
+    desc:"Water ingress at the starboard saloon window. Rake out and reseal.",
+    status:"todo", priority:false, photos:[], thread:[] }
+];
+
+/* ---- checklists ---- */
+var CHECKLISTS = [
+  { id:"predep", icon:"⚓", title:"Pre‑Departure Checklist", vessel:"Everywhen", sop:"safety",
+    items:["Engine oil & coolant levels checked","Fuel level adequate for trip + reserve","Bilges checked & dry","Nav lights & instruments working","VHF radio check completed","Life jackets & EPIRB on board & in date","Fire extinguishers in place & in date","Lines & fenders stowed for sea","Weather & tides reviewed"] },
+  { id:"engine", icon:"🔧", title:"Monthly Engine Room Check", vessel:"Everywhen", sop:"engine",
+    items:["Belts checked for wear & tension","Sea strainers cleared","Raw‑water impeller inspected","Oil & coolant topped as needed","Fuel/water separator drained","No visible leaks (oil/fuel/water)","Battery terminals clean & tight","Bilge pump float switch tested"] },
+  { id:"handover", icon:"🔑", title:"Vessel Handover Checklist", vessel:"Andiamo", sop:"handover",
+    items:["Walkthrough completed with owner/charter","Fuel & water levels recorded","Existing damage logged with photos","Keys & remotes handed over","Safety brief given","Cleanliness signed off"] },
+  { id:"detail", icon:"✨", title:"Detailing / Wash‑down Standard", vessel:"Andiamo", sop:"detailing",
+    items:["Deck rinsed & chamois‑dried (no water spots)","Stainless polished","Isinglass cleaned with approved product only","Interior vacuumed & surfaces wiped","Heads cleaned & restocked","Rubbish removed & bins relined"] }
+];
+
+/* ---- hours log (per crew) ---- */
+var LOGS = {
+  jack:  [ {vessel:"Everywhen", date:"2026-07-19", hours:3.5, desc:"Started davit winch service — stripped and cleaned", prod:""} ],
+  bruce: [ {vessel:"Abel Tasman III", date:"2026-07-19", hours:2.0, desc:"Watermaker pre‑filters replaced, membrane flushed", prod:"2x pre‑filter"} ],
+  duncan:[], gracie:[], paloma:[]
+};
+
+/* ---- SOP sections ---- */
+var SOP = [
+  { id:"detailing", icon:"✨", title:"Detailing Standard", sub:"How every vessel gets finished",
+    html:"<h5>The Marine HQ finish</h5><p>Every vessel leaves looking charter‑ready. No water spots, no streaks, nothing left on deck.</p><ul><li>Rinse top‑down, chamois‑dry every surface — never let it air‑dry.</li><li>Isinglass / clears: approved plastic cleaner only. <b>Never</b> household glass cleaner.</li><li>Stainless polished and fingerprint‑free.</li><li>Interior: vacuum, wipe all surfaces, heads restocked, bins relined.</li></ul><h5>Products</h5><p>Use MHQ stock only. Log what you use on your end‑of‑day so it goes on the job card.</p>" },
+  { id:"safety", icon:"🦺", title:"Safety & Pre‑Departure", sub:"Before any vessel moves",
+    html:"<h5>Non‑negotiables</h5><ul><li>Life jackets and EPIRB on board and in date.</li><li>Fire extinguishers in place and in date.</li><li>VHF radio check before departure.</li><li>Bilges checked and dry.</li></ul><h5>If something's wrong</h5><p>Don't depart. Log it as a job and message Marine HQ — we'll sort it.</p>" },
+  { id:"engine", icon:"🔧", title:"Engine Room Checks", sub:"Monthly & pre‑start",
+    html:"<h5>Monthly</h5><ul><li>Belts, impeller, sea strainers, separators.</li><li>Oil & coolant levels; look for leaks.</li><li>Test bilge pump float switch.</li></ul><h5>Log the readings</h5><p>Note oil/coolant top‑ups and any readings in your end‑of‑day so there's a record.</p>" },
+  { id:"handover", icon:"🔑", title:"Handover Procedure", sub:"Owner & charter handovers",
+    html:"<h5>Every handover</h5><ul><li>Walkthrough with the owner or charter guest.</li><li>Record fuel & water levels.</li><li>Photograph and log any existing damage <b>before</b> handover.</li><li>Give the safety brief.</li></ul>" },
+  { id:"eod", icon:"⏱️", title:"End‑of‑Day Logging", sub:"How your hours become a job card",
+    html:"<h5>Why it matters</h5><p>Your end‑of‑day log is how the work you did turns into the owner's job card and invoice. Log it the same day.</p><ul><li>Pick the vessel, put your hours and a clear description.</li><li>List any MHQ stock you used.</li><li>Marine HQ reviews every job card before it's sent to the owner — the owner never sees your raw notes.</li></ul>" }
+];
+
+/* ================= state ================= */
+var ME = null, TAB = "jobs", JOBFILTER = "All", openJobId = null, openClId = null, raisePhotos = [];
+var STATUS_LABEL = { todo:"To do", inprog:"In progress", parts:"Awaiting parts", done:"Done" };
+var STATUS_ORDER = ["todo","inprog","parts","done"];
+var STAGE_OF = { todo:0, inprog:1, parts:1, done:2 };
+
+/* ================= helpers ================= */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return (s||"").replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function initials(n){ return (n||"?").split(" ").map(function(w){return w[0];}).slice(0,2).join("").toUpperCase(); }
+function toast(m){ var t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(function(){t.classList.remove("show");},2800); }
+function crewById(id){ return CREW.filter(function(c){return c.id===id;})[0]; }
+function fmtDate(d){ var p=(d||"").split("-"); return p.length===3? (p[2]+"/"+p[1]+"/"+p[0].slice(2)) : d; }
+
+/* ================= login ================= */
+(function initLogin(){
+  var sel=$("demoPick");
+  CREW.forEach(function(c){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.name+" · "+c.role; sel.appendChild(o); });
+})();
+var pendingEmail="";
+function sendLink(){
+  var e=($("emailIn").value||"").trim().toLowerCase();
+  if(!e || e.indexOf("@")<0){ toast("Enter your work email"); return; }
+  pendingEmail=e;
+  $("sentEmail").textContent=e;
+  $("loginStep").classList.add("hidden"); $("sentStep").classList.remove("hidden");
+}
+function backToLogin(){ $("sentStep").classList.add("hidden"); $("loginStep").classList.remove("hidden"); }
+function openMagicLink(){
+  var c=CREW.filter(function(x){return x.email===pendingEmail;})[0];
+  if(!c){ toast("No crew found for that email — using the demo picker below is easiest"); backToLogin(); return; }
+  enter(c.id);
+}
+function demoLogin(id){ if(id) enter(id); }
+function enter(id){
+  ME=crewById(id);
+  $("login").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  var sw=$("crewSwitch"); sw.innerHTML=CREW.map(function(c){return '<option value="'+c.id+'"'+(c.id===id?" selected":"")+'>'+esc(c.name)+'</option>';}).join("");
+  refreshAll();
+}
+function switchCrew(id){ ME=crewById(id); openJobId=null; JOBFILTER="All"; refreshAll(); }
+
+/* ================= tabs ================= */
+function go(tab){
+  TAB=tab;
+  ["jobs","check","hours","sop"].forEach(function(t){ $("tab-"+t).classList.toggle("hidden", t!==tab); });
+  document.querySelectorAll(".tabbar .tb").forEach(function(b){ b.classList.toggle("on", b.dataset.tab===tab); });
+  $("fab").classList.toggle("hidden", tab!=="jobs");
+  var titles={jobs:["Crew Portal","Your jobs, checklists & hours"],check:["Checklists","Tick & sign off"],hours:["Log hours","End‑of‑day"],sop:["SOP & guides","Marine HQ standards"]};
+  $("hdrTitle").textContent=titles[tab][0]; $("hdrSub").textContent=titles[tab][1];
+  window.scrollTo(0,0);
+}
+function refreshAll(){
+  $("hdrAv").textContent=initials(ME.name);
+  renderJobs(); renderChecklists(); renderHours(); renderSOP();
+}
+
+/* ================= JOBS ================= */
+function myJobs(){ return JOBS.filter(function(j){ return j.assignedTo===ME.id; }); }
+function jobBucket(st){ return st==="done"?"Done":st==="todo"?"To do":"In progress"; }
+function renderJobs(){
+  var mine=myJobs();
+  var first=ME.name.split(" ")[0];
+  var open=mine.filter(function(j){return j.status!=="done";}).length;
+  $("jobsHello").innerHTML="Hi <b>"+esc(first)+"</b> — you have <b>"+open+"</b> open "+(open===1?"job":"jobs")+" across "+esc(ME.vessels.join(" & "))+".";
+  var FILTERS=["All","To do","In progress","Done"];
+  $("jobChips").innerHTML=FILTERS.map(function(f){return '<div class="chip '+(f===JOBFILTER?"on":"")+'" onclick="setJobFilter(\''+f+'\')">'+f+'</div>';}).join("");
+  var list=mine.filter(function(j){ return JOBFILTER==="All"||jobBucket(j.status)===JOBFILTER; });
+  $("jobsCount").textContent=list.length+(list.length===1?" job":" jobs");
+  var el=$("jobList");
+  if(!list.length){ el.innerHTML='<div class="empty">Nothing here right now.<br>New jobs Marine HQ assign to you will show up here.</div>'; return; }
+  el.innerHTML=list.map(function(j){
+    return '<div class="job brd-'+j.status+'" onclick="openJob(\''+j.id+'\')">'+
+      '<div class="top"><div style="flex:1">'+
+        '<div class="vessel">'+esc(j.vessel)+'</div><h3>'+esc(j.title)+'</h3></div>'+
+        '<span class="badge s-'+j.status+'">'+STATUS_LABEL[j.status]+'</span></div>'+
+      '<p class="desc">'+esc(j.desc)+'</p>'+
+      '<div class="meta">'+
+        (j.priority?'<span class="prio">Priority</span>':'')+
+        (j.photos.length?'<span>📷 '+j.photos.length+'</span>':'<span>No photos yet</span>')+
+        '<span>💬 '+j.thread.length+'</span></div></div>';
+  }).join("");
+}
+function setJobFilter(f){ JOBFILTER=f; renderJobs(); }
+
+function trackerHTML(status){
+  var stage=STAGE_OF[status], done=status==="done", labels=["To do","In progress","Done"], h='<div class="tracker">';
+  for(var i=0;i<3;i++){ var isDone=done||i<stage, isNow=!done&&i===stage;
+    h+='<div class="tstep '+(isDone?"done":isNow?"now":"")+'"><div class="tdot">'+(isDone?"✓":(i+1))+'</div><small>'+labels[i]+'</small></div>';
+    if(i<2) h+='<div class="tbar '+((done||i<stage)?"fill":"")+'"></div>';
+  } return h+'</div>';
+}
+function openJob(id){
+  openJobId=id; var j=JOBS.filter(function(x){return x.id===id;})[0]; if(!j)return;
+  var phHTML=(j.photos.length? j.photos.map(function(p){ return '<div class="ph"><div class="thumb">📷</div><small>'+esc(p.name)+'</small></div>'; }).join("") : '<div style="font-size:13px;color:var(--muted)">No photos yet.</div>')
+    +'<div class="addph" onclick="addPhoto(\''+id+'\')">＋<span>Add photo</span></div>';
+  var thread=j.thread.map(function(m){
+    var mine=m.role==="crew";
+    return '<div class="msg '+(mine?"mine":"")+'"><div class="av '+(m.role==="mhq"?"mhq":"crew")+'">'+esc(m.role==="mhq"?"HQ":initials(m.who))+'</div>'+
+      '<div class="bub"><div class="who">'+esc(m.who)+'<span>'+esc(m.when)+'</span></div><div class="txt">'+esc(m.text)+'</div></div></div>';
+  }).join("");
+  var opts=STATUS_ORDER.map(function(s){return '<option value="'+s+'"'+(s===j.status?" selected":"")+'>'+STATUS_LABEL[s]+'</option>';}).join("");
+  $("sheet").innerHTML=
+    '<div class="sheet-hd"><div style="flex:1">'+
+      '<div style="font-size:11px;font-weight:bold;letter-spacing:.4px;color:#ffd7b0">'+esc(j.vessel)+'</div>'+
+      '<h3>'+esc(j.title)+'</h3></div>'+
+      '<button class="closeb" onclick="closeSheet()">✕</button></div>'+
+    '<div class="sec"><h4>Progress</h4>'+trackerHTML(j.status)+
+      '<div class="statusrow" style="margin-top:14px"><label>Set status</label><select onchange="setJobStatus(\''+id+'\',this.value)">'+opts+'</select></div>'+
+      (j.status!=="done"?'<button class="donebtn" onclick="setJobStatus(\''+id+'\',\'done\')">✓ Mark done</button>':'')+'</div>'+
+    '<div class="sec"><h4>The job</h4><p class="body">'+esc(j.desc)+'</p></div>'+
+    '<div class="sec"><h4>Photos</h4><div class="photos">'+phHTML+'</div></div>'+
+    '<div class="sec"><h4>Notes with Marine HQ</h4>'+
+      '<div class="wallnote">🔒 Private between you and Marine HQ — the owner doesn\'t see these notes.</div>'+
+      (thread||'<div style="font-size:13px;color:var(--muted);margin-bottom:6px">No notes yet.</div>')+
+      '<div class="composer"><input id="jobNote" placeholder="Add a progress note…"><button onclick="addNote(\''+id+'\')">Send</button></div></div>'+
+    '<div style="height:14px"></div>';
+  $("overlay").classList.add("show");
+  var s=$("sheet"); s.classList.add("show"); s.scrollTop=0;
+}
+function setJobStatus(id,st){
+  var j=JOBS.filter(function(x){return x.id===id;})[0]; if(!j)return;
+  j.status=st;
+  if(st==="done") j.thread.push({who:ME.name,role:"crew",text:"Marked this job done.",when:"Today"});
+  toast("🔔 Marine HQ notified — "+STATUS_LABEL[st]);
+  renderJobs(); openJob(id);
+}
+function addNote(id){
+  var i=$("jobNote"); var v=(i.value||"").trim(); if(!v)return;
+  var j=JOBS.filter(function(x){return x.id===id;})[0];
+  j.thread.push({who:ME.name,role:"crew",text:v,when:"Today"});
+  toast("🔔 Sent to Marine HQ");
+  renderJobs(); openJob(id);
+}
+function addPhoto(id){
+  var j=JOBS.filter(function(x){return x.id===id;})[0];
+  j.photos.push({name:"photo-"+(j.photos.length+1)+".jpg",thumb:true});
+  toast("📷 Photo added — Marine HQ can see it");
+  renderJobs(); openJob(id);
+}
+
+/* ================= CHECKLISTS ================= */
+function renderChecklists(){
+  $("clCount").textContent=CHECKLISTS.length+" available";
+  $("clList").innerHTML=CHECKLISTS.map(function(cl){
+    var st=clState(cl); var done=st.checked, total=cl.items.length, pct=Math.round(done/total*100);
+    var right = st.signedBy ? '<span class="signed">✓ Signed</span>' : '<span class="prog">'+done+'/'+total+'</span>';
+    return '<div class="clcard" onclick="openChecklist(\''+cl.id+'\')">'+
+      '<div class="ic">'+cl.icon+'</div>'+
+      '<div class="body"><div style="display:flex;align-items:center"><h3 style="flex:1">'+esc(cl.title)+'</h3>'+right+'</div>'+
+      '<div class="sub">'+esc(cl.vessel)+'</div>'+
+      '<div class="clbar"><i style="width:'+pct+'%"></i></div></div></div>';
+  }).join("");
+}
+/* per-crew checklist state kept on the object keyed by crew id */
+function clState(cl){ cl._state=cl._state||{}; cl._state[ME.id]=cl._state[ME.id]||{ticks:{},signedBy:null,signedAt:null}; var s=cl._state[ME.id]; s.checked=Object.keys(s.ticks).filter(function(k){return s.ticks[k];}).length; return s; }
+function openChecklist(id){
+  openClId=id; var cl=CHECKLISTS.filter(function(x){return x.id===id;})[0]; if(!cl)return;
+  var s=clState(cl);
+  var items=cl.items.map(function(it,idx){
+    var on=!!s.ticks[idx];
+    return '<div class="cli '+(on?"on":"")+'" onclick="tickItem(\''+id+'\','+idx+')"><div class="box">'+(on?"✓":"")+'</div><div class="lbl">'+esc(it)+'</div></div>';
+  }).join("");
+  var allDone=s.checked===cl.items.length;
+  var signHTML;
+  if(s.signedBy){
+    signHTML='<div class="signoff done"><h4>Signed off</h4><div class="signed-line">✓ '+esc(s.signedBy)+' · '+esc(s.signedAt)+'</div></div>';
+  } else {
+    signHTML='<div class="signoff"><h4>Sign off</h4>'+
+      '<p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Tick every item, then sign to confirm you completed this checklist.</p>'+
+      '<button class="signbtn" '+(allDone?"":"disabled")+' onclick="signChecklist(\''+id+'\')">'+(allDone?"Sign off as "+esc(ME.name):"Tick all items to sign")+'</button></div>';
+  }
+  $("sheet").innerHTML=
+    '<div class="sheet-hd"><div style="flex:1"><div style="font-size:11px;font-weight:bold;letter-spacing:.4px;color:#ffd7b0">'+esc(cl.vessel)+'</div>'+
+      '<h3>'+esc(cl.title)+'</h3></div><button class="closeb" onclick="closeSheet()">✕</button></div>'+
+    '<div class="sec"><h4>Checklist</h4>'+items+'</div>'+
+    signHTML+
+    '<div class="sec" style="cursor:pointer" onclick="closeSheet();go(\'sop\');openSOP(\''+cl.sop+'\')"><h4>Related guide</h4><p class="body" style="color:var(--navy);font-weight:bold">📖 Open the SOP for this →</p></div>'+
+    '<div style="height:14px"></div>';
+  $("overlay").classList.add("show"); var sh=$("sheet"); sh.classList.add("show"); sh.scrollTop=0;
+}
+function tickItem(id,idx){
+  var cl=CHECKLISTS.filter(function(x){return x.id===id;})[0]; var s=clState(cl);
+  if(s.signedBy)return;
+  s.ticks[idx]=!s.ticks[idx];
+  renderChecklists(); openChecklist(id);
+}
+function signChecklist(id){
+  var cl=CHECKLISTS.filter(function(x){return x.id===id;})[0]; var s=clState(cl);
+  s.signedBy=ME.name; s.signedAt=fmtDate(TODAY)+" · "+ME.role;
+  toast("✓ Signed off — sent to Marine HQ");
+  renderChecklists(); openChecklist(id);
+}
+
+/* ================= HOURS ================= */
+function renderHours(){
+  $("todayDate").textContent=fmtDate(TODAY);
+  var logs=(LOGS[ME.id]||[]);
+  var today=logs.filter(function(l){return l.date===TODAY;});
+  var tot=today.reduce(function(a,l){return a+(Number(l.hours)||0);},0);
+  $("todayHrs").textContent=tot.toFixed(1);
+  var el=$("logList");
+  if(!logs.length){ el.innerHTML='<div class="empty">No hours logged yet.<br>Tap the button above to add your end‑of‑day.</div>'; return; }
+  var sorted=logs.slice().sort(function(a,b){return a.date<b.date?1:-1;});
+  el.innerHTML=sorted.map(function(l){
+    return '<div class="logrow"><div class="lt"><span class="lv">'+esc(l.vessel)+'</span><span class="lh">'+Number(l.hours).toFixed(1)+' hrs</span></div>'+
+      '<div class="ld">'+esc(fmtDate(l.date))+' — '+esc(l.desc)+(l.prod?'<br><i>Products: '+esc(l.prod)+'</i>':'')+'</div></div>';
+  }).join("");
+}
+function openLog(){
+  var v=$("l_vessel"); v.innerHTML=ME.vessels.map(function(x){return '<option>'+esc(x)+'</option>';}).join("")+VESSELS.filter(function(x){return ME.vessels.indexOf(x)<0;}).map(function(x){return '<option>'+esc(x)+'</option>';}).join("");
+  $("l_date").value=TODAY; $("l_hours").value=""; $("l_desc").value=""; $("l_prod").value="";
+  $("logModal").classList.add("show");
+}
+function submitLog(){
+  var h=parseFloat($("l_hours").value); var d=($("l_desc").value||"").trim();
+  if(!(h>0)){ toast("Add your hours"); return; }
+  if(!d){ toast("Add what you did"); return; }
+  (LOGS[ME.id]=LOGS[ME.id]||[]).push({ vessel:$("l_vessel").value, date:$("l_date").value||TODAY, hours:h, desc:d, prod:($("l_prod").value||"").trim() });
+  closeModal("logModal"); toast("🔔 Sent to Marine HQ — added to the job card"); renderHours();
+}
+
+/* ================= SOP ================= */
+function renderSOP(){
+  $("sopList").innerHTML=SOP.map(function(s){
+    return '<div class="sopitem" onclick="openSOP(\''+s.id+'\')"><div class="ic">'+s.icon+'</div>'+
+      '<div style="flex:1"><h3>'+esc(s.title)+'</h3><div class="sub">'+esc(s.sub)+'</div></div><div class="chev">›</div></div>';
+  }).join("");
+}
+function openSOP(id){
+  var s=SOP.filter(function(x){return x.id===id;})[0]; if(!s)return;
+  $("sheet").innerHTML=
+    '<div class="sheet-hd"><div style="flex:1"><div style="font-size:11px;font-weight:bold;letter-spacing:.4px;color:#ffd7b0">Marine HQ SOP</div>'+
+      '<h3>'+esc(s.title)+'</h3></div><button class="closeb" onclick="closeSheet()">✕</button></div>'+
+    '<div class="sec"><div class="sopbody">'+s.html+'</div></div>'+
+    '<div style="height:14px"></div>';
+  $("overlay").classList.add("show"); var sh=$("sheet"); sh.classList.add("show"); sh.scrollTop=0;
+}
+
+/* ================= raise a job ================= */
+function openRaise(){
+  var v=$("r_vessel"); v.innerHTML=ME.vessels.map(function(x){return '<option>'+esc(x)+'</option>';}).join("");
+  $("r_title").value=""; $("r_desc").value=""; $("r_photos").value=""; raisePhotos=[];
+  $("raiseModal").classList.add("show");
+}
+function submitRaise(){
+  var t=($("r_title").value||"").trim(); if(!t){ toast("Give the job a short title"); return; }
+  var nPhotos=($("r_photos").files||[]).length;
+  var j={ id:"J"+(JOBS.length+1), vessel:$("r_vessel").value, assignedTo:ME.id, title:t,
+    desc:($("r_desc").value||"").trim()||"(No detail added)", status:"todo", priority:false,
+    photos:[], thread:[{who:"Marine HQ",role:"mhq",text:"Thanks — we've got this and we'll review it.",when:"Just now"}] };
+  for(var i=0;i<nPhotos;i++) j.photos.push({name:"photo-"+(i+1)+".jpg",thumb:true});
+  JOBS.push(j);
+  closeModal("raiseModal"); toast("🔔 Sent to Marine HQ — job raised"); go("jobs"); renderJobs();
+}
+
+/* ================= sheet / modal ================= */
+function closeSheet(){ $("sheet").classList.remove("show"); $("overlay").classList.remove("show"); openJobId=null; openClId=null; }
+function closeModal(id){ $(id).classList.remove("show"); }
+</script>
+</body>
+</html>
