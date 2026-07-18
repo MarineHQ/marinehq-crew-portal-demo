@@ -159,6 +159,9 @@
   .logrow .ld{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.4}
   .daytotal{background:var(--navy);color:#fff;border-radius:11px;padding:12px 14px;display:flex;align-items:center;margin-bottom:14px}
   .daytotal b{font-size:18px} .daytotal span{margin-left:auto;font-size:12px;opacity:.85}
+  .eodbtn{width:100%;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:15px;border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .eodsub{font-size:12px;color:var(--muted);text-align:center;margin:11px 6px 2px;line-height:1.5}
+  .eodsub b{color:var(--navy)}
 
   /* misc */
   .empty{text-align:center;color:var(--muted);font-size:13px;padding:44px 20px;line-height:1.5}
@@ -269,9 +272,11 @@
     <!-- HOURS -->
     <div id="tab-hours" class="hidden">
       <div class="subbar"><h2>Log hours</h2><span class="count">End of day</span></div>
-      <p class="hello">Log your hours and what you did. This goes straight to Marine HQ and onto the vessel's job card — same as the EOD form.</p>
+      <p class="hello">Tap below to open your <b>EOD form</b> — it's already pre‑filled with your name. It goes straight to Marine HQ and onto the vessel's job card.</p>
       <div class="daytotal"><div><b id="todayHrs">0.0</b> hrs</div><span id="todayDate"></span></div>
-      <button class="go" style="width:100%;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:13px;border-radius:11px;cursor:pointer;margin-bottom:16px" onclick="openLog()">+ Log an end‑of‑day entry</button>
+      <button class="eodbtn" onclick="openEOD()">📋 Open my EOD form →</button>
+      <p class="eodsub" id="eodSub"></p>
+      <div class="subbar" style="padding-top:20px"><h2 style="font-size:15px">Recent entries</h2></div>
       <div id="logList"></div>
     </div>
 
@@ -343,12 +348,14 @@
 var TODAY = "2026-07-19";
 
 /* ---- crew (from the Rates Table) ---- */
+// eod = each crew member's PERSONAL pre-filled EOD Google Form link (name pre-filled).
+// Leave "" until the real link is added — the button then explains it's a demo.
 var CREW = [
-  { id:"jack",   name:"Jack Thompson", role:"Master",   email:"jack.thompson@gmail.com",  vessels:["Everywhen","Andiamo"] },
-  { id:"bruce",  name:"Bruce Wilson",  role:"Engineer", email:"brucew63@bigpond.com",     vessels:["Sheer Bliss","Abel Tasman III"] },
-  { id:"duncan", name:"Duncan Reid",   role:"Ops",      email:"duncan.reid@outlook.com",  vessels:["Sea Ya","Ara Roa"] },
-  { id:"gracie", name:"Gracie Adams",  role:"Detailer", email:"gracie.adams@gmail.com",   vessels:["Everywhen"] },
-  { id:"paloma", name:"Paloma Diaz",   role:"Detailer", email:"paloma.diaz@icloud.com",   vessels:["Andiamo"] }
+  { id:"jack",   name:"Jack Thompson", role:"Master",   email:"jack.thompson@gmail.com",  vessels:["Everywhen","Andiamo"],         eod:"" },
+  { id:"bruce",  name:"Bruce Wilson",  role:"Engineer", email:"brucew63@bigpond.com",     vessels:["Sheer Bliss","Abel Tasman III"], eod:"" },
+  { id:"duncan", name:"Duncan Reid",   role:"Ops",      email:"duncan.reid@outlook.com",  vessels:["Sea Ya","Ara Roa"],           eod:"" },
+  { id:"gracie", name:"Gracie Adams",  role:"Detailer", email:"gracie.adams@gmail.com",   vessels:["Everywhen"],                  eod:"" },
+  { id:"paloma", name:"Paloma Diaz",   role:"Detailer", email:"paloma.diaz@icloud.com",   vessels:["Andiamo"],                    eod:"" }
 ];
 var VESSELS = ["Everywhen","Andiamo","Sheer Bliss","Abel Tasman III","Sea Ya","Ara Roa"];
 
@@ -619,8 +626,15 @@ function signChecklist(id){
 }
 
 /* ================= HOURS ================= */
+function openEOD(){
+  if(ME.eod){ window.open(ME.eod, "_blank", "noopener"); return; }
+  toast("Demo — this opens your personal EOD form, pre‑filled with your name.");
+}
 function renderHours(){
   $("todayDate").textContent=fmtDate(TODAY);
+  $("eodSub").innerHTML = ME.eod
+    ? "Opens your Marine HQ EOD form, pre‑filled as <b>"+esc(ME.name)+"</b>."
+    : "In the real app this opens <b>"+esc(ME.name)+"</b>'s personal EOD form (name pre‑filled). Same form you use now — nothing changes for the office.";
   var logs=(LOGS[ME.id]||[]);
   var today=logs.filter(function(l){return l.date===TODAY;});
   var tot=today.reduce(function(a,l){return a+(Number(l.hours)||0);},0);
