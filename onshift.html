@@ -10,6 +10,9 @@
   body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
   header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:16px 14px}
   header .inner{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px}
+  .appbanner{width:100%;background:#1B3A6B;line-height:0}
+  .appbanner img{width:100%;display:block}
+  .brandmark{height:30px;width:auto;display:block;flex-shrink:0}
   .logo{width:34px;height:34px;border-radius:9px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px}
   header h1{font-size:16px;margin:0} header p{margin:2px 0 0;font-size:11px;opacity:.82}
   .wrap{max-width:760px;margin:0 auto;padding:16px 14px 60px}
@@ -35,7 +38,8 @@
 </style>
 </head>
 <body>
-<header><div class="inner"><div class="logo">HQ</div><div><h1>Crew on Shift</h1><p>Live — who's clocked in right now</p></div></div></header>
+<div class="appbanner"><img src="banner.jpg" alt="Marine HQ — Vessel Management & Marine Services"></div>
+<header><div class="inner"><img class="brandmark" src="logo-mark.png" alt="Marine HQ"><div><h1>Crew on Shift</h1><p>Live — who's clocked in right now</p></div></div></header>
 <div class="wrap">
   <div class="count"><span class="dot"></span><span id="countTxt">Loading…</span></div>
   <div id="list"></div>
@@ -43,8 +47,8 @@
 </div>
 
 <div class="gate" id="gate">
-  <div class="g"><div class="l">HQ</div><h3>Marine HQ — Staff</h3>
-    <p>Enter the staff passcode to see who's on the clock.</p>
+  <div class="g"><div class="l">HQ</div><h3>Marine HQ — Crew</h3>
+    <p>Enter your Marine HQ passcode to see who's on the clock.</p>
     <input id="gk" type="password" placeholder="Passcode" onkeydown="if(event.key==='Enter')unlock()">
     <button onclick="unlock()">View board</button>
   </div>
