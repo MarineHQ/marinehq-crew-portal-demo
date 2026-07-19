@@ -221,7 +221,7 @@
   .aform{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
   .aform label{display:block;font-size:12px;font-weight:bold;color:var(--muted);margin:13px 0 5px}
   .aform label:first-child{margin-top:0}
-  .aform input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit}
+  .aform input,.aform select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;background:#fff}
   .aform .eodfield input{border-color:var(--orange);background:#fff8f2}
   .aform .hint{font-size:11.5px;color:var(--muted);margin:5px 2px 0;line-height:1.45}
   .aform .save{width:100%;margin-top:18px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:13px;border-radius:11px;cursor:pointer}
@@ -335,19 +335,15 @@
       <div id="clList"></div>
     </div>
 
-    <!-- TIME CLOCK + HOURS -->
+    <!-- TIME CLOCK + TODAY'S SHIFTS -->
     <div id="tab-hours" class="hidden">
       <div class="subbar"><h2>Time clock</h2><span class="count" id="clockStatus"></span></div>
       <div id="clockCard"></div>
       <div id="shiftsWrap"></div>
-
-      <div class="subbar" style="padding-top:12px"><h2 style="font-size:16px">End of day</h2></div>
-      <p class="hello" style="padding-top:2px">Open your <b>EOD form</b> — pre‑filled with your name, right inside the app. Goes straight onto the vessel's job card.</p>
-      <div class="daytotal"><div><b id="todayHrs">0.0</b> hrs</div><span id="todayDate"></span></div>
+      <div class="subbar" style="padding-top:16px"><h2 style="font-size:15px">EOD form (backup)</h2></div>
+      <p class="hello" style="padding-top:2px">Your clocked shifts above go to Marine HQ when you tap <b>Send my day</b> — no need to fill a form. Prefer the old form? It’s here as a backup.</p>
       <button class="eodbtn" onclick="openEOD()">📋 Open my EOD form →</button>
       <p class="eodsub" id="eodSub"></p>
-      <div class="subbar" style="padding-top:20px"><h2 style="font-size:15px">Recent entries</h2></div>
-      <div id="logList"></div>
     </div>
 
     <!-- SOP -->
@@ -386,6 +382,18 @@
   <input type="file" id="r_photos" accept="image/*" multiple>
   <button class="go" onclick="submitRaise()">Send to Marine HQ</button>
   <button class="cancel" onclick="closeModal('raiseModal')">Cancel</button>
+</div></div>
+
+<!-- Shift description modal (add what you did on a boat) -->
+<div class="modal" id="shiftModal"><div class="card2">
+  <h3>What did you do?</h3>
+  <p class="mhint" id="shiftHdr"></p>
+  <label class="fld">Job description</label>
+  <textarea class="fld-ta" id="s_desc" placeholder="e.g. Serviced davit winch, greased and load‑tested"></textarea>
+  <label class="fld">Products used from MHQ stock (optional)</label>
+  <input class="fld-in" id="s_prod" placeholder="e.g. winch grease, rags">
+  <button class="go" id="s_save" onclick="saveShiftNote()">Save</button>
+  <button class="cancel" onclick="closeModal('shiftModal')">Cancel</button>
 </div></div>
 
 <!-- Log hours modal -->
@@ -577,7 +585,7 @@ function go(tab){
   $("fab").classList.toggle("hidden", tab!=="jobs");
   var titles={jobs:["Crew Portal","Your jobs, checklists & hours"],check:["Checklists","Tick & sign off"],hours:["Time clock","Clock in · EOD · hours"],sop:["SOP & guides","Marine HQ standards"]};
   $("hdrTitle").textContent=titles[tab][0]; $("hdrSub").textContent=titles[tab][1];
-  if(tab==="hours") renderClock();
+  if(tab==="hours"){ renderClock(); loadShifts(); }
   updateStrip();
   window.scrollTo(0,0);
 }
@@ -738,7 +746,7 @@ function clockIn(){
   var btn=document.querySelector(".clockbtn.doin"); if(btn){ btn.textContent="📍 Getting location…"; btn.disabled=true; }
   function send(lat,lng){
     apiPost({action:"crewClockIn", email:ME.email, vessel:v, other:other, lat:lat, lng:lng}).then(function(j){
-      if(j&&j.ok){ var s=j.shift; c.in=true; c.at=s.inAt; c.vessel=s.vessel; c.loc=(lat!=null?"Location shared with Marine HQ":""); toast(other?("🟢 Clocked in — Marine HQ alerted about “"+v+"”"):("🟢 Clocked in at "+v+" — Marine HQ notified")); renderClock(); updateStrip(); }
+      if(j&&j.ok){ var s=j.shift; c.in=true; c.at=s.inAt; c.vessel=s.vessel; c.loc=(lat!=null?"Location shared with Marine HQ":""); toast(other?("🟢 Clocked in — Marine HQ alerted about “"+v+"”"):("🟢 Clocked in at "+v+" — Marine HQ notified")); renderClock(); updateStrip(); loadShifts(); }
       else { toast((j&&j.error)||"Couldn’t clock in"); renderClock(); }
     }).catch(function(){ toast("Couldn’t connect"); renderClock(); });
   }
@@ -751,7 +759,7 @@ function clockIn(){
 }
 function clockOut(){
   apiPost({action:"crewClockOut", email:ME.email}).then(function(j){
-    if(j&&j.ok){ var c=clk(), s=j.shift; c.shifts.unshift({vessel:s.vessel,inAt:s.inAt,outAt:s.outAt,mins:s.minutes}); c.in=false; toast("Clocked out — "+shiftDur(s.minutes)+" logged"); renderClock(); updateStrip(); }
+    if(j&&j.ok){ var c=clk(), s=j.shift; c.in=false; toast("Clocked out — "+shiftDur(s.minutes)+" · add what you did below"); renderClock(); updateStrip(); loadShifts(); }
     else { toast((j&&j.error)||"Couldn’t clock out"); }
   }).catch(function(){ toast("Couldn’t connect"); });
 }
@@ -769,13 +777,8 @@ function renderClock(){
       '<select id="clockVessel" onchange="onVesselPick(\'clockVessel\',\'clockOther\')">'+vesselOpts()+'</select>'+
       '<input id="clockOther" placeholder="Type the yacht name" style="display:none;width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:14px;font-family:inherit;margin-bottom:12px">'+
       '<button class="clockbtn doin" onclick="clockIn()">🟢 Clock in</button>'+
-      '<p class="clocknote">📍 While you’re on the clock, Marine HQ can see you’re working and at which vessel. Your location is shared only while you’re clocked in.</p></div>';
+      '<p class="clocknote">📍 While you’re on the clock, Marine HQ can see you’re working and at which vessel. Clock out when you move to the next boat.</p></div>';
   }
-  var sw=$("shiftsWrap");
-  sw.innerHTML = c.shifts.length
-    ? '<div class="subbar" style="padding:6px 2px 8px"><h2 style="font-size:14px">Today’s shifts</h2></div>'+
-      c.shifts.map(function(s){return '<div class="shiftrow"><span class="sv">'+esc(s.vessel)+'</span><span class="sd">'+fmtClockTime(s.inAt)+' – '+fmtClockTime(s.outAt)+'</span><span class="sh">'+shiftDur(s.mins)+'</span></div>';}).join("")
-    : '';
 }
 function updateStrip(){
   var c=ME&&ME.clock, strip=$("clockStrip");
@@ -802,8 +805,9 @@ function adminList(){
     $("adminBody").innerHTML=
       '<p class="intro">This is your side, Marine HQ. Onboard a crew member once — their details and personal EOD form link save to their profile, so everything’s ready the moment they log in with their own email.</p>'+
       ADMIN_CREW.map(function(c){
-        return '<div class="acrew" onclick="adminEdit(\''+esc(c.id)+'\')"><div class="aav">'+esc(initials(c.name))+'</div>'+
-          '<div style="flex:1"><h4>'+esc(c.name)+'</h4><div class="asub">'+esc(c.role)+(c.email?(' · '+esc(c.email)):'')+'</div>'+
+        var inactive = c.active===false;
+        return '<div class="acrew" onclick="adminEdit(\''+esc(c.id)+'\')" style="'+(inactive?"opacity:.6":"")+'"><div class="aav">'+esc(initials(c.name))+'</div>'+
+          '<div style="flex:1"><h4>'+esc(c.name)+(inactive?' <span style="font-size:11px;font-weight:bold;color:var(--muted);background:#eceff3;padding:2px 7px;border-radius:10px;vertical-align:middle">No access</span>':'')+'</h4><div class="asub">'+esc(c.role)+(c.email?(' · '+esc(c.email)):'')+'</div>'+
           '<div class="'+(c.eod?"eodok":"eodno")+'">'+(c.eod?"✓ EOD form linked":"• EOD form not linked yet")+'</div></div>'+
           '<span class="aedit">›</span></div>';
       }).join("")+
@@ -812,6 +816,7 @@ function adminList(){
 }
 function adminEdit(id){
   var c = id==="new" ? {id:"",name:"",role:"",email:"",vessels:[],eod:""} : (ADMIN_CREW.filter(function(x){return x.id===id;})[0]||{vessels:[]});
+  var active = c.active!==false;
   $("adminBody").innerHTML=
     '<div class="aform">'+
     '<label>Full name</label><input id="ad_name" value="'+esc(c.name)+'" placeholder="e.g. Sam Carter">'+
@@ -820,13 +825,24 @@ function adminEdit(id){
     '<label>Vessels they work</label><input id="ad_vessels" value="'+esc((c.vessels||[]).join(", "))+'" placeholder="e.g. Everywhen, Andiamo">'+
     '<div class="eodfield"><label>Personal EOD form link</label><input id="ad_eod" value="'+esc(c.eod||"")+'" placeholder="https://docs.google.com/forms/…"></div>'+
     '<p class="hint">Paste their pre‑filled EOD Google Form link here — this is the bit you load at onboarding. It’s then waiting in their <b>Time</b> tab the first time they log in.</p>'+
+    '<label>Access</label>'+
+    '<select id="ad_active"><option value="yes"'+(active?" selected":"")+'>Active — can log in</option><option value="no"'+(!active?" selected":"")+'>No access — left or on leave</option></select>'+
+    '<p class="hint">Someone leaving for a while? Set <b>No access</b> — it cuts their login &amp; clock‑in but keeps their record and shift history. Flip back to <b>Active</b> when they return — nothing to set up again.</p>'+
     '<button class="save" id="ad_save" onclick="adminSave(\''+esc(id)+'\')">Save crew member</button>'+
-    '<button class="back" onclick="adminList()">← Back to crew list</button></div>';
+    '<button class="back" onclick="adminList()">← Back to crew list</button>'+
+    (id!=="new" ? '<button class="back" style="color:var(--red)" onclick="adminDelete(\''+esc(id)+'\')">Remove permanently</button>' : '')+
+    '</div>';
+}
+function adminDelete(id){
+  var c=ADMIN_CREW.filter(function(x){return x.id===id;})[0]||{name:"this crew member"};
+  if(!confirm("Remove "+c.name+" permanently?\n\nTheir shift history stays in the records. If they might come back, use “No access” instead — that keeps everything.")) return;
+  apiPost({action:"crewDelete", key:CREW_KEY, id:id}).then(function(j){ if(j&&j.ok){ toast("Removed"); adminList(); } else toast((j&&j.error)||"Couldn’t remove"); });
 }
 function adminSave(id){
   var name=$("ad_name").value.trim(); if(!name){toast("Add a name");return;}
   var crew={ id:(id==="new"?"":id), name:name, role:$("ad_role").value.trim(), email:$("ad_email").value.trim(),
-             vessels:$("ad_vessels").value.split(",").map(function(s){return s.trim();}).filter(Boolean), eod:$("ad_eod").value.trim() };
+             vessels:$("ad_vessels").value.split(",").map(function(s){return s.trim();}).filter(Boolean), eod:$("ad_eod").value.trim(),
+             active: ($("ad_active") ? $("ad_active").value==="yes" : true) };
   var btn=$("ad_save"); if(btn){ btn.textContent="Saving…"; btn.disabled=true; }
   apiPost({action:"crewSave", key:CREW_KEY, crew:crew}).then(function(j){
     if(j&&j.ok){ toast(crew.eod?"✓ Saved — EOD form linked, ready at login":"✓ Saved to their profile"); adminList(); }
@@ -853,31 +869,62 @@ function openEOD(){
 }
 function closeEOD(){ $("eodwrap").classList.remove("show"); $("eodframe").innerHTML=""; }
 function renderHours(){
-  $("todayDate").textContent=fmtDate(TODAY);
-  $("eodSub").innerHTML = "Opens right here in the app, pre‑filled as <b>"+esc(ME.name)+"</b> — no leaving the portal. Same EOD form Marine HQ uses now.";
-  var logs=(LOGS[ME.id]||[]);
-  var today=logs.filter(function(l){return l.date===TODAY;});
-  var tot=today.reduce(function(a,l){return a+(Number(l.hours)||0);},0);
-  $("todayHrs").textContent=tot.toFixed(1);
-  var el=$("logList");
-  if(!logs.length){ el.innerHTML='<div class="empty">No hours logged yet.<br>Tap the button above to add your end‑of‑day.</div>'; return; }
-  var sorted=logs.slice().sort(function(a,b){return a.date<b.date?1:-1;});
-  el.innerHTML=sorted.map(function(l){
-    return '<div class="logrow"><div class="lt"><span class="lv">'+esc(l.vessel)+'</span><span class="lh">'+Number(l.hours).toFixed(1)+' hrs</span></div>'+
-      '<div class="ld">'+esc(fmtDate(l.date))+' — '+esc(l.desc)+(l.prod?'<br><i>Products: '+esc(l.prod)+'</i>':'')+'</div></div>';
+  $("eodSub").innerHTML = "Backup only — your shifts above are the main way to send your day. Same EOD form as before, pre‑filled as <b>"+esc(ME.name)+"</b>.";
+}
+
+/* ===== today's shifts (real — from the Crew Clock tab) ===== */
+var SHIFTS = [], editShiftId = null;
+function loadShifts(){
+  if(!ME||!ME.email) return;
+  apiGet("fn=crewshifts&email="+encodeURIComponent(ME.email)).then(function(j){ SHIFTS=(j&&j.shifts)||[]; renderShifts(); }).catch(function(){});
+}
+function renderShifts(){
+  var sw=$("shiftsWrap"); if(!sw) return;
+  if(!SHIFTS.length){ sw.innerHTML='<p class="hello" style="padding:10px 2px 0">No shifts yet today. <b>Clock in</b> when you start on a boat and <b>clock out</b> when you move to the next — then add what you did at the end of the day.</p>'; return; }
+  var closed=SHIFTS.filter(function(s){return !s.open;});
+  var readyToSend=closed.filter(function(s){return s.desc && !s.submitted;}).length;
+  var needDesc=closed.filter(function(s){return !s.desc && !s.submitted;}).length;
+  var html='<div class="subbar" style="padding:12px 2px 8px"><h2 style="font-size:15px">Today’s shifts</h2><span class="count">'+SHIFTS.length+(SHIFTS.length===1?" boat":" boats")+'</span></div>';
+  html+=SHIFTS.map(function(s){
+    var when=fmtClockTime(s.inAt)+(s.outAt?(' – '+fmtClockTime(s.outAt)):' – now');
+    var right = s.submitted ? '<span class="sh" style="color:var(--ok)">✓ Sent</span>' : '<span class="sh">'+shiftDur(s.minutes)+'</span>';
+    var descLine;
+    if(s.open) descLine='<div class="sd" style="color:var(--amber)">On the clock — clock out to finish</div>';
+    else if(s.submitted) descLine='<div class="sd">'+esc(s.desc||"")+'</div>';
+    else if(s.desc) descLine='<div class="sd">'+esc(s.desc)+' <span style="color:var(--navy);font-weight:bold">· edit</span></div>';
+    else descLine='<div class="sd" style="color:var(--orange);font-weight:bold">＋ Add what you did</div>';
+    var clickable=(!s.open && !s.submitted);
+    return '<div class="shiftrow"'+(clickable?' onclick="openShiftEditor(\''+s.id+'\')" style="cursor:pointer"':'')+'>'+
+      '<div style="flex:1"><div><span class="sv">'+esc(s.vessel)+'</span> <span class="sd">'+when+'</span></div>'+descLine+'</div>'+right+'</div>';
   }).join("");
+  if(readyToSend){
+    html+='<button class="eodbtn" style="margin-top:6px" onclick="sendMyDay()">Send my day to Marine HQ ('+readyToSend+')</button>'+
+      '<p class="eodsub">Sends each boat’s hours + description to Marine HQ, onto the job cards — same as the EOD form, no form to fill.</p>';
+  } else if(needDesc){
+    html+='<p class="eodsub" style="color:var(--amber)">Add a description to each shift, then a <b>Send my day</b> button appears.</p>';
+  }
+  sw.innerHTML=html;
 }
-function openLog(){
-  var v=$("l_vessel"); v.innerHTML=ME.vessels.map(function(x){return '<option>'+esc(x)+'</option>';}).join("")+VESSELS.filter(function(x){return ME.vessels.indexOf(x)<0;}).map(function(x){return '<option>'+esc(x)+'</option>';}).join("");
-  $("l_date").value=TODAY; $("l_hours").value=""; $("l_desc").value=""; $("l_prod").value="";
-  $("logModal").classList.add("show");
+function openShiftEditor(id){
+  var s=SHIFTS.filter(function(x){return x.id===id;})[0]; if(!s)return;
+  editShiftId=id;
+  $("shiftHdr").textContent=s.vessel+" · "+fmtClockTime(s.inAt)+(s.outAt?(" – "+fmtClockTime(s.outAt)):"")+" ("+shiftDur(s.minutes)+")";
+  $("s_desc").value=s.desc||""; $("s_prod").value=s.products||"";
+  $("shiftModal").classList.add("show");
 }
-function submitLog(){
-  var h=parseFloat($("l_hours").value); var d=($("l_desc").value||"").trim();
-  if(!(h>0)){ toast("Add your hours"); return; }
-  if(!d){ toast("Add what you did"); return; }
-  (LOGS[ME.id]=LOGS[ME.id]||[]).push({ vessel:$("l_vessel").value, date:$("l_date").value||TODAY, hours:h, desc:d, prod:($("l_prod").value||"").trim() });
-  closeModal("logModal"); toast("🔔 Sent to Marine HQ — added to the job card"); renderHours();
+function saveShiftNote(){
+  var desc=($("s_desc").value||"").trim(); if(!desc){ toast("Add a short description"); return; }
+  var btn=$("s_save"); if(btn){ btn.textContent="Saving…"; btn.disabled=true; }
+  apiPost({action:"crewShiftNote", email:ME.email, shiftId:editShiftId, desc:desc, products:($("s_prod").value||"").trim()}).then(function(j){
+    if(btn){ btn.textContent="Save"; btn.disabled=false; }
+    if(j&&j.ok){ closeModal("shiftModal"); toast("Saved"); loadShifts(); } else toast((j&&j.error)||"Couldn’t save");
+  }).catch(function(){ if(btn){ btn.textContent="Save"; btn.disabled=false; } toast("Couldn’t connect"); });
+}
+function sendMyDay(){
+  apiPost({action:"crewSubmitDay", email:ME.email}).then(function(j){
+    if(j&&j.ok){ toast(j.sent?("🔔 Sent "+j.sent+" job"+(j.sent>1?"s":"")+" to Marine HQ"):"Nothing to send yet"); loadShifts(); }
+    else toast((j&&j.error)||"Couldn’t send");
+  }).catch(function(){ toast("Couldn’t connect"); });
 }
 
 /* ================= SOP ================= */
