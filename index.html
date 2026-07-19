@@ -376,7 +376,8 @@
   <h3>Raise a job</h3>
   <p class="mhint">Spotted something that needs doing? Send it to Marine HQ — they'll review and schedule it.</p>
   <label class="fld">Vessel</label>
-  <select class="fld-in" id="r_vessel"></select>
+  <select class="fld-in" id="r_vessel" onchange="onVesselPick('r_vessel','r_other')"></select>
+  <input class="fld-in" id="r_other" placeholder="Type the yacht name" style="display:none;margin-top:8px">
   <label class="fld">What needs doing?</label>
   <input class="fld-in" id="r_title" placeholder="e.g. Bilge pump float switch sticking">
   <label class="fld">Detail (optional)</label>
@@ -452,7 +453,10 @@ var CREW = [
   { id:"gracie", name:"Gracie Adams",  role:"Detailer", email:"gracie.adams@gmail.com",   vessels:["Everywhen"],                  eod:"" },
   { id:"paloma", name:"Paloma Diaz",   role:"Detailer", email:"paloma.diaz@icloud.com",   vessels:["Andiamo"],                    eod:"" }
 ];
-var VESSELS = ["Everywhen","Andiamo","Sheer Bliss","Abel Tasman III","Sea Ya","Ara Roa"];
+var VESSELS = ["Everywhen","Andiamo","Sheer Bliss","Abel Tasman III","Sea Ya","SS88 - Krystyna","Ara Roa","Flagship"];
+// Full fleet + an "Other" option for a yacht not in the system yet (Marine HQ gets alerted).
+function vesselOpts(sel){ return VESSELS.map(function(v){return '<option'+(v===sel?' selected':'')+'>'+esc(v)+'</option>';}).join("") + '<option value="__other__">Other — a yacht not in the system…</option>'; }
+function onVesselPick(selId, otherId){ var s=document.getElementById(selId), o=document.getElementById(otherId); if(o) o.style.display = (s.value==="__other__") ? "block" : "none"; }
 
 /* ---- jobs (assignedTo = crew id) ---- */
 var JOBS = [
@@ -728,11 +732,13 @@ function fmtElapsed(ms){ var s=Math.max(0,Math.floor(ms/1000)); return pad2(Math
 function fmtClockTime(ms){ var d=new Date(ms), h=d.getHours(), m=d.getMinutes(), ap=h<12?"am":"pm", hh=h%12; if(hh===0)hh=12; return hh+":"+pad2(m)+" "+ap; }
 function shiftDur(mins){ var h=Math.floor(mins/60), m=mins%60; return (h?h+"h ":"")+m+"m"; }
 function clockIn(){
-  var v=$("clockVessel").value, c=clk();
+  var sel=$("clockVessel").value, c=clk(), v, other=false;
+  if(sel==="__other__"){ v=($("clockOther").value||"").trim(); if(!v){ toast("Type the yacht name"); return; } other=true; }
+  else { v=sel; }
   var btn=document.querySelector(".clockbtn.doin"); if(btn){ btn.textContent="📍 Getting location…"; btn.disabled=true; }
   function send(lat,lng){
-    apiPost({action:"crewClockIn", email:ME.email, vessel:v, lat:lat, lng:lng}).then(function(j){
-      if(j&&j.ok){ var s=j.shift; c.in=true; c.at=s.inAt; c.vessel=s.vessel; c.loc=(lat!=null?"Location shared with Marine HQ":""); toast("🟢 Clocked in at "+v+" — Marine HQ notified"); renderClock(); updateStrip(); }
+    apiPost({action:"crewClockIn", email:ME.email, vessel:v, other:other, lat:lat, lng:lng}).then(function(j){
+      if(j&&j.ok){ var s=j.shift; c.in=true; c.at=s.inAt; c.vessel=s.vessel; c.loc=(lat!=null?"Location shared with Marine HQ":""); toast(other?("🟢 Clocked in — Marine HQ alerted about “"+v+"”"):("🟢 Clocked in at "+v+" — Marine HQ notified")); renderClock(); updateStrip(); }
       else { toast((j&&j.error)||"Couldn’t clock in"); renderClock(); }
     }).catch(function(){ toast("Couldn’t connect"); renderClock(); });
   }
@@ -759,9 +765,9 @@ function renderClock(){
       '<div class="cmeta">'+esc(c.vessel)+' · since '+fmtClockTime(c.at)+'<br>📍 '+esc(c.loc||"Location shared with Marine HQ")+'</div>'+
       '<button class="clockbtn doout" onclick="clockOut()">Clock out</button></div>';
   } else {
-    var opts=ME.vessels.map(function(v){return '<option>'+esc(v)+'</option>';}).join("");
     cc.innerHTML='<div class="clockcard out"><div class="clabel">Start your shift</div>'+
-      '<select id="clockVessel">'+opts+'</select>'+
+      '<select id="clockVessel" onchange="onVesselPick(\'clockVessel\',\'clockOther\')">'+vesselOpts()+'</select>'+
+      '<input id="clockOther" placeholder="Type the yacht name" style="display:none;width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:14px;font-family:inherit;margin-bottom:12px">'+
       '<button class="clockbtn doin" onclick="clockIn()">🟢 Clock in</button>'+
       '<p class="clocknote">📍 While you’re on the clock, Marine HQ can see you’re working and at which vessel. Your location is shared only while you’re clocked in.</p></div>';
   }
@@ -893,14 +899,17 @@ function openSOP(id){
 
 /* ================= raise a job ================= */
 function openRaise(){
-  var v=$("r_vessel"); v.innerHTML=ME.vessels.map(function(x){return '<option>'+esc(x)+'</option>';}).join("");
+  $("r_vessel").innerHTML=vesselOpts(ME.vessels[0]); $("r_other").style.display="none"; $("r_other").value="";
   $("r_title").value=""; $("r_desc").value=""; $("r_photos").value=""; raisePhotos=[];
   $("raiseModal").classList.add("show");
 }
 function submitRaise(){
   var t=($("r_title").value||"").trim(); if(!t){ toast("Give the job a short title"); return; }
+  var vsel=$("r_vessel").value, vessel;
+  if(vsel==="__other__"){ vessel=($("r_other").value||"").trim(); if(!vessel){ toast("Type the yacht name"); return; } vessel="Other — "+vessel; }
+  else { vessel=vsel; }
   var nPhotos=($("r_photos").files||[]).length;
-  var j={ id:"J"+(JOBS.length+1), vessel:$("r_vessel").value, assignedTo:ME.id, title:t,
+  var j={ id:"J"+(JOBS.length+1), vessel:vessel, assignedTo:ME.id, title:t,
     desc:($("r_desc").value||"").trim()||"(No detail added)", status:"todo", priority:false,
     photos:[], thread:[{who:"Marine HQ",role:"mhq",text:"Thanks — we've got this and we'll review it.",when:"Just now"}] };
   for(var i=0;i<nPhotos;i++) j.photos.push({name:"photo-"+(i+1)+".jpg",thumb:true});
