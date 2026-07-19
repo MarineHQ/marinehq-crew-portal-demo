@@ -249,18 +249,23 @@
       linear-gradient(160deg, rgba(16,27,58,.86) 0%, rgba(26,43,92,.60) 50%, rgba(16,27,58,.95) 100%),
       url("everywhen.jpg") center 40%/cover no-repeat,
       #101B3A;}
-  .login .card{background:rgba(255,255,255,.98);border-radius:18px;box-shadow:0 20px 60px rgba(5,12,35,.55);padding:30px 24px 26px;max-width:384px;width:100%;text-align:center;border-top:4px solid var(--orange)}
-  .login .eyebrow{font-size:11px;font-weight:bold;letter-spacing:3px;color:var(--orange);margin-bottom:7px}
-  .login h2{margin:0 0 5px;color:var(--navy);font-size:27px;font-weight:900;letter-spacing:-.3px}
-  .login .tagline{margin:0 0 20px;color:var(--muted);font-size:13.5px;font-style:italic;line-height:1.45}
+  .login .card{background:rgba(255,255,255,.98);border-radius:18px;box-shadow:0 20px 60px rgba(5,12,35,.55);padding:40px 34px 32px;max-width:410px;width:100%;text-align:center;border-top:4px solid var(--orange)}
+  .login .eyebrow{font-size:11px;font-weight:bold;letter-spacing:4px;color:var(--orange);margin-bottom:6px}
+  .login h2{margin:0 0 4px;color:var(--navy);font-size:34px;font-weight:900;letter-spacing:-.5px}
+  .login .tagline{margin:0 0 26px;color:var(--muted);font-size:13px;font-style:italic;line-height:1.45}
+  .login .sub{font-size:12px;color:var(--muted);margin:0 0 10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:bold}
   .login input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:14px;font-size:15px;font-family:inherit;text-align:center}
   .login input:focus{outline:none;border-color:var(--orange)}
   .login .go{width:100%;margin-top:12px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:14px;border-radius:11px;cursor:pointer}
   .login .ownemail{font-size:12px;color:var(--muted);line-height:1.5;margin:14px 4px 0}
   .login .ownemail b{color:var(--navy)}
-  .login .demo{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}
+  .login .contact{margin-top:22px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .login .contact b{color:var(--orange)}
+  .login .demo{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
   .login .demo small{display:block;color:var(--muted);font-size:11.5px;text-align:center;margin-bottom:8px}
   .login select{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px;font-size:14px;font-family:inherit;background:#fff}
+  .a2p{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:110;display:flex;align-items:center;gap:10px;background:var(--orange);color:#fff;font-weight:bold;font-size:14px;padding:12px 17px;border-radius:30px;box-shadow:0 8px 22px rgba(232,119,34,.45);cursor:pointer}
+  .a2p .x{opacity:.85;font-weight:normal;font-size:15px}
   .sent .tick{width:54px;height:54px;border-radius:50%;background:#e9f6f0;color:var(--ok);font-size:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
   .sent .linkbtn{width:100%;margin-top:16px;border:0;background:var(--navy);color:#fff;font-weight:bold;font-size:14px;padding:14px;border-radius:11px;cursor:pointer}
   .sent .back{margin-top:10px;border:0;background:transparent;color:var(--muted);font-size:12.5px;cursor:pointer;width:100%}
@@ -275,12 +280,14 @@
   <div class="hero">
     <div class="card">
       <div id="loginStep">
-        <div class="eyebrow">MARINE HQ · CREW</div>
+        <div class="eyebrow">MARINE HQ</div>
         <h2>Crew Portal</h2>
-        <p class="tagline">Your jobs, checklists &amp; hours — in your pocket.</p>
+        <p class="tagline">Your jobs. Your hours. Anytime.</p>
+        <div class="sub">Sign in with your email</div>
         <input id="emailIn" type="email" inputmode="email" placeholder="your email" autocomplete="email">
         <button class="go" onclick="sendLink()">Send me a sign‑in link</button>
         <p class="ownemail">Use your <b>own</b> email — whatever you use day to day (Gmail, Outlook, iCloud…). No special address needed.</p>
+        <p class="contact">Need a hand? We're always here.<br><b>0439 748 387</b> · <b>yachtsupport@marinehq.com.au</b></p>
         <div class="demo">
           <small>Just testing? Use the demo account</small>
           <button class="go" style="background:var(--navy);margin-top:0" onclick="testAccount()">Sign in as the test account</button>
@@ -296,6 +303,7 @@
       </div>
     </div>
   </div>
+  <div class="a2p" id="a2p" onclick="addToPhone()"><span>⚓ Add to phone</span><span class="x" onclick="event.stopPropagation();document.getElementById('a2p').style.display='none'">✕</span></div>
 </div>
 
 <!-- ===================== APP ===================== -->
@@ -557,6 +565,12 @@ function sendLink(){
   $("loginStep").classList.add("hidden"); $("sentStep").classList.remove("hidden");
 }
 function backToLogin(){ $("sentStep").classList.add("hidden"); $("loginStep").classList.remove("hidden"); }
+function addToPhone(){
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  alert(ios
+    ? "Add Marine HQ Crew to your phone:\n\n1.  Tap the Share button  (the box with an ↑)\n2.  Scroll down and tap “Add to Home Screen”\n3.  Tap Add — the anchor icon appears on your home screen"
+    : "Add Marine HQ Crew to your phone:\n\nTap the browser menu (⋮) → “Add to Home screen” / “Install app”.");
+}
 function openMagicLink(){ doLogin(pendingEmail); }
 function testAccount(){ doLogin(TEST_EMAIL); }
 function doLogin(email, silent){
