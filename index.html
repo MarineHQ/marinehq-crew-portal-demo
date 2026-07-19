@@ -189,6 +189,12 @@
   .clockcard.in{background:linear-gradient(150deg,#1F7A54,#166043);color:#fff}
   .clockcard .clabel{font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px}
   .clockcard select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:14px;font-family:inherit;background:#fff;margin-bottom:12px}
+  /* on-brand boat picker */
+  .boatpick{position:relative;margin-bottom:12px}
+  .boatpick::after{content:"▾";position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--orange);font-size:20px;font-weight:bold;pointer-events:none}
+  .boatpick select{width:100%;border:2px solid var(--navy);border-radius:12px;padding:15px 42px 15px 16px;font-size:16px;font-weight:bold;color:var(--navy);font-family:inherit;background:#fff;-webkit-appearance:none;-moz-appearance:none;appearance:none;cursor:pointer;margin:0}
+  .boatpick select:focus{outline:none;border-color:var(--orange)}
+  .othernote{display:none;background:#fff5e9;border:1px solid #f0d3ad;color:var(--amber);font-size:12.5px;line-height:1.45;border-radius:10px;padding:10px 12px;margin-bottom:12px;text-align:left}
   .clockbtn{width:100%;border:0;border-radius:11px;font-weight:bold;font-size:16px;padding:15px;cursor:pointer}
   .clockbtn.doin{background:var(--ok);color:#fff}
   .clockbtn.doout{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.6);margin-top:14px}
@@ -234,7 +240,7 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* bottom nav */
-  .tabbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:36;padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:36;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -3px 14px rgba(20,30,50,.12)}
   .tabbar .tb{flex:1;border:0;background:transparent;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--muted);font-size:10.5px;font-weight:bold}
   .tabbar .tb .ti{font-size:19px;line-height:1}
   .tabbar .tb.on{color:var(--navy)}
@@ -473,6 +479,7 @@ var VESSELS = ["Everywhen","Andiamo","Sheer Bliss","Abel Tasman III","Sea Ya","S
 // Full fleet + an "Other" option for a yacht not in the system yet (Marine HQ gets alerted).
 function vesselOpts(sel){ return VESSELS.map(function(v){return '<option'+(v===sel?' selected':'')+'>'+esc(v)+'</option>';}).join("") + '<option value="__other__">Other — a yacht not in the system…</option>'; }
 function onVesselPick(selId, otherId){ var s=document.getElementById(selId), o=document.getElementById(otherId); if(o) o.style.display = (s.value==="__other__") ? "block" : "none"; }
+function onClockVessel(){ var other=$("clockVessel").value==="__other__"; $("clockOther").style.display=other?"block":"none"; var n=$("clockOtherNote"); if(n) n.style.display=other?"block":"none"; }
 
 /* ---- jobs (assignedTo = crew id) ---- */
 var JOBS = [
@@ -787,9 +794,10 @@ function renderClock(){
       '<div class="cmeta">'+esc(c.vessel)+' · since '+fmtClockTime(c.at)+'<br>📍 '+esc(c.loc||"Location shared with Marine HQ")+'</div>'+
       '<button class="clockbtn doout" onclick="clockOut()">Clock out</button></div>';
   } else {
-    cc.innerHTML='<div class="clockcard out"><div class="clabel">Start your shift</div>'+
-      '<select id="clockVessel" onchange="onVesselPick(\'clockVessel\',\'clockOther\')">'+vesselOpts()+'</select>'+
-      '<input id="clockOther" placeholder="Type the yacht name" style="display:none;width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:14px;font-family:inherit;margin-bottom:12px">'+
+    cc.innerHTML='<div class="clockcard out"><div class="clabel">Which boat are you on?</div>'+
+      '<div class="boatpick"><select id="clockVessel" onchange="onClockVessel()">'+vesselOpts()+'</select></div>'+
+      '<input id="clockOther" placeholder="Boat name" style="display:none;width:100%;border:2px solid var(--navy);border-radius:12px;padding:14px 16px;font-size:16px;font-weight:bold;color:var(--navy);font-family:inherit;margin-bottom:12px">'+
+      '<div id="clockOtherNote" class="othernote">⚓ This boat isn’t in the system yet — please add its name to your job description when you send your day, so Marine HQ knows which boat it was.</div>'+
       '<button class="clockbtn doin" onclick="clockIn()">🟢 Clock in</button>'+
       '<p class="clocknote">📍 While you’re on the clock, Marine HQ can see you’re working and at which vessel. Clock out when you move to the next boat.</p></div>';
   }
