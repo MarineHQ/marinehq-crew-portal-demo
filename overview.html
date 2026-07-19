@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marine HQ — Crew Command</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root{--navy:#1A2B5C;--navy2:#1B3A5C;--orange:#E87722;--ink:#22303f;--muted:#6b7a8d;--line:#e3e8ef;--bg:#f4f6f9;--card:#fff;--ok:#1F7A54;--amber:#B77410;--red:#C0472A;--blue:#2A5DB0;--grey:#7a869a;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%}
+  header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:14px 16px;position:sticky;top:0;z-index:20}
+  header .inner{max-width:940px;margin:0 auto;display:flex;align-items:center;gap:11px}
+  .logo{width:34px;height:34px;border-radius:9px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;flex-shrink:0}
+  header h1{font-size:16px;margin:0} header p{margin:2px 0 0;font-size:11px;opacity:.82}
+  header .refresh{margin-left:auto;font-size:11px;opacity:.8}
+  .tabs{max-width:940px;margin:0 auto;display:flex;gap:6px;padding:12px 16px 0;overflow-x:auto}
+  .tab{white-space:nowrap;border:0;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:13px;font-weight:bold;padding:9px 15px;border-radius:22px;cursor:pointer}
+  .tab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .wrap{max-width:940px;margin:0 auto;padding:14px 16px 60px}
+  .kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .kpi{flex:1;min-width:120px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .kpi b{font-size:24px;color:var(--navy);display:block} .kpi span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:bold}
+  .kpi.on b{color:var(--ok)}
+  h2.sec{font-size:15px;margin:16px 2px 10px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px}
+  .crewhd{display:flex;align-items:center;gap:11px;margin-bottom:8px}
+  .av{width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;flex-shrink:0}
+  .av.on{background:var(--ok)}
+  .crewhd h3{margin:0;font-size:15px} .crewhd .sub{font-size:12px;color:var(--muted)}
+  .crewhd .tot{margin-left:auto;font-weight:bold;color:var(--navy);font-size:14px}
+  .shift{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
+  .shift .v{font-weight:bold;color:var(--orange);text-transform:uppercase;font-size:11px;letter-spacing:.4px;min-width:0}
+  .shift .d{color:var(--muted);flex:1} .shift .h{font-weight:bold;color:var(--navy);white-space:nowrap}
+  .pill{display:inline-block;font-size:10px;font-weight:bold;padding:2px 7px;border-radius:10px;color:#fff}
+  .p-on{background:var(--ok)} .p-sent{background:#3a4a5c} .p-open{background:var(--amber)} .p-none{background:var(--grey)}
+  .maprow{display:flex;gap:14px;flex-wrap:wrap}
+  #map{height:300px;flex:1;min-width:280px;border-radius:12px;border:1px solid var(--line);z-index:1}
+  .onlist{flex:1;min-width:240px}
+  .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:10px;flex-wrap:wrap}
+  .chip{white-space:nowrap;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:12px;font-weight:bold;padding:6px 12px;border-radius:18px;cursor:pointer}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .jobcols{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:720px){.jobcols{grid-template-columns:1fr 1fr 1fr}}
+  .jobcol h3{font-size:13px;margin:0 0 8px;display:flex;align-items:center;gap:7px}
+  .jobcol h3 .n{background:var(--navy);color:#fff;border-radius:11px;font-size:11px;padding:1px 8px}
+  .jobcol.todo h3 .n{background:var(--grey)} .jobcol.prog h3 .n{background:var(--amber)} .jobcol.done h3 .n{background:var(--ok)}
+  .job{background:#fff;border:1px solid var(--line);border-left:3px solid var(--grey);border-radius:9px;padding:9px 11px;margin-bottom:8px;font-size:12.5px}
+  .job.prog{border-left-color:var(--amber)} .job.done{border-left-color:var(--ok)}
+  .job .jv{font-weight:bold;color:var(--orange);text-transform:uppercase;font-size:10px;letter-spacing:.4px}
+  .job .jt{font-weight:bold;margin:2px 0} .job .jd{color:var(--muted);line-height:1.35}
+  .job .ja{margin-top:5px;font-size:11px;color:var(--navy);font-weight:bold}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:34px 20px;line-height:1.5}
+  .spin{text-align:center;color:var(--muted);padding:40px;font-size:13px}
+  select.crewsel{border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit;background:#fff;margin-bottom:12px;width:100%;max-width:320px}
+  .gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy),var(--navy2));display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .gate .g{background:#fff;border-radius:16px;padding:26px 22px;max-width:340px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+  .gate .l{width:40px;height:40px;border-radius:10px;background:var(--orange);color:#fff;font-weight:bold;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+  .gate h3{margin:0 0 4px;color:var(--navy)} .gate p{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+  .gate input{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;text-align:center;font-family:inherit}
+  .gate button{width:100%;margin-top:12px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:12px;border-radius:10px;cursor:pointer}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="inner"><div class="logo">HQ</div><div><h1>Crew Command</h1><p>Marine HQ — everyone, everything, live</p></div><div class="refresh" id="refresh"></div></div></header>
+<div class="tabs" id="tabs">
+  <button class="tab on" data-t="now" onclick="go('now')">On now</button>
+  <button class="tab" data-t="shifts" onclick="go('shifts')">Today's shifts</button>
+  <button class="tab" data-t="jobs" onclick="go('jobs')">Jobs</button>
+  <button class="tab" data-t="crew" onclick="go('crew')">By crew</button>
+</div>
+<div class="wrap">
+  <div id="v-now"></div>
+  <div id="v-shifts" class="hidden"></div>
+  <div id="v-jobs" class="hidden"></div>
+  <div id="v-crew" class="hidden"></div>
+</div>
+
+<div class="gate" id="gate">
+  <div class="g"><div class="l">HQ</div><h3>Marine HQ — Staff</h3>
+    <p>Enter the staff passcode to open the crew command centre.</p>
+    <input id="gk" type="password" placeholder="Passcode" onkeydown="if(event.key==='Enter')unlock()">
+    <button onclick="unlock()">Open</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var API="https://script.google.com/macros/s/AKfycbx5sC5b4rIF1tcMPWRdM9hpc8Lwj26TP7w8ikc0nR1KLyYNDv0CagCZYD3uBfmbQCxh/exec";
+var KEY=(function(){try{return localStorage.getItem("mhq_crew_key")||"";}catch(e){return "";}})();
+var TAB="now", DATA={ onShift:[], shifts:[], jobs:[], crew:[] }, jobCrewFilter="All", map=null, markers=[];
+function esc(s){return (s||"").toString().replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function initials(n){var w=(n||"?").replace(/[^A-Za-z ]/g,"").trim().split(/\s+/).filter(Boolean);return ((w[0]||"?")[0]+((w[1]||"")[0]||"")).toUpperCase();}
+function pad(n){return (n<10?"0":"")+n;}
+function tclock(ms){var d=new Date(ms),h=d.getHours(),m=d.getMinutes(),ap=h<12?"am":"pm",hh=h%12;if(hh===0)hh=12;return hh+":"+pad(m)+" "+ap;}
+function dur(mins){var h=Math.floor(mins/60),m=mins%60;return (h?h+"h ":"")+m+"m";}
+function get(fn){return fetch(API+"?fn="+fn+"&key="+encodeURIComponent(KEY)+"&_="+Date.now()).then(function(r){return r.json();});}
+
+function unlock(){var v=(document.getElementById("gk").value||"").trim();if(!v)return;KEY=v;try{localStorage.setItem("mhq_crew_key",v);}catch(e){}document.getElementById("gate").style.display="none";loadAll();}
+function go(t){TAB=t;["now","shifts","jobs","crew"].forEach(function(x){document.getElementById("v-"+x).classList.toggle("hidden",x!==t);});
+  document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("on",b.dataset.t===t);});
+  if(t==="now") setTimeout(function(){ if(map) map.invalidateSize(); },100);}
+
+function loadAll(){
+  if(!KEY){document.getElementById("gate").style.display="flex";return;}
+  document.getElementById("v-now").innerHTML='<div class="spin">Loading…</div>';
+  Promise.all([get("crewonshift"),get("crewallshifts"),get("hub"),get("crewlist")]).then(function(res){
+    if((res[0]&&res[0].locked)||(res[3]&&res[3].locked)){KEY="";try{localStorage.removeItem("mhq_crew_key");}catch(e){}document.getElementById("gate").style.display="flex";return;}
+    DATA.onShift=(res[0]&&res[0].onShift)||[];
+    DATA.shifts=(res[1]&&res[1].shifts)||[];
+    DATA.jobs=(res[2]&&res[2].jobs)||[];
+    DATA.crew=(res[2]&&res[2].crew)||[];   // hub crew names — match the jobs' "Allocated To"
+    document.getElementById("refresh").textContent="Updated "+tclock(Date.now());
+    renderNow(); renderShifts(); renderJobs(); renderCrew();
+  }).catch(function(){document.getElementById("v-now").innerHTML='<div class="empty">Couldn’t load — check your connection.</div>';});
+}
+
+/* ---------- On now ---------- */
+function jobBucket(st){ st=(st||"").toLowerCase(); if(st.indexOf("progress")>=0)return"prog"; if(st.indexOf("complete")>=0||st.indexOf("done")>=0)return"done"; return"todo"; }
+function renderNow(){
+  if(map){ try{ map.remove(); }catch(e){} map=null; markers=[]; }   // container gets rebuilt below
+  var on=DATA.onShift, doneToday=DATA.shifts.filter(function(s){return !s.open;});
+  var hoursToday=doneToday.reduce(function(a,s){return a+(s.minutes||0);},0)/60;
+  var html='<div class="kpis">'+
+    '<div class="kpi on"><b>'+on.length+'</b><span>On the clock</span></div>'+
+    '<div class="kpi"><b>'+DATA.shifts.length+'</b><span>Shifts today</span></div>'+
+    '<div class="kpi"><b>'+hoursToday.toFixed(1)+'</b><span>Hours today</span></div>'+
+    '<div class="kpi"><b>'+DATA.jobs.length+'</b><span>Open jobs</span></div></div>';
+  html+='<div class="maprow"><div id="map"></div><div class="onlist">';
+  if(!on.length) html+='<div class="empty">Nobody is clocked in right now.</div>';
+  else html+=on.map(function(s){
+    var mapl=(s.lat!==""&&s.lat!=null)?' · <a href="https://www.google.com/maps?q='+s.lat+','+s.lng+'" target="_blank" style="color:var(--navy)">map</a>':'';
+    return '<div class="card" style="margin-bottom:9px"><div class="crewhd" style="margin:0"><div class="av on">'+esc(initials(s.crew))+'</div>'+
+      '<div style="flex:1"><h3>'+esc(s.crew)+'</h3><div class="sub">'+esc(s.vessel)+' · since '+tclock(s.inAt)+mapl+'</div></div>'+
+      '<div class="tot">'+dur(s.minutes)+'</div></div></div>';
+  }).join("");
+  html+='</div></div>';
+  document.getElementById("v-now").innerHTML=html;
+  drawMap();
+}
+function drawMap(){
+  try{
+    var el=document.getElementById("map"); if(!el||typeof L==="undefined")return;
+    if(!map){ map=L.map("map").setView([-27.97,153.42],11);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map); }
+    markers.forEach(function(m){map.removeLayer(m);}); markers=[];
+    var pts=[];
+    DATA.onShift.forEach(function(s){ if(s.lat!==""&&s.lat!=null){ var m=L.marker([s.lat,s.lng]).addTo(map).bindPopup("<b>"+esc(s.crew)+"</b><br>"+esc(s.vessel)+" · since "+tclock(s.inAt)); markers.push(m); pts.push([s.lat,s.lng]); } });
+    if(pts.length) map.fitBounds(pts,{padding:[40,40],maxZoom:14});
+    setTimeout(function(){map.invalidateSize();},80);
+  }catch(e){}
+}
+
+/* ---------- Today's shifts (grouped by crew) ---------- */
+function renderShifts(){
+  var el=document.getElementById("v-shifts");
+  if(!DATA.shifts.length){ el.innerHTML='<div class="empty">No shifts clocked today yet.</div>'; return; }
+  var byCrew={};
+  DATA.shifts.forEach(function(s){ (byCrew[s.crew]=byCrew[s.crew]||[]).push(s); });
+  var html="";
+  Object.keys(byCrew).sort().forEach(function(name){
+    var list=byCrew[name].slice().sort(function(a,b){return a.inAt-b.inAt;});
+    var tot=list.reduce(function(a,s){return a+(s.minutes||0);},0);
+    html+='<div class="card"><div class="crewhd"><div class="av">'+esc(initials(name))+'</div>'+
+      '<div style="flex:1"><h3>'+esc(name)+'</h3><div class="sub">'+list.length+(list.length===1?" boat":" boats")+' today</div></div>'+
+      '<div class="tot">'+dur(tot)+'</div></div>'+
+      list.map(function(s){
+        var badge = s.open?'<span class="pill p-open">on the clock</span>':(s.submitted?'<span class="pill p-sent">sent</span>':(s.desc?'':'<span class="pill p-none">no note</span>'));
+        return '<div class="shift"><span class="v">'+esc(s.vessel)+'</span>'+
+          '<span class="d">'+tclock(s.inAt)+(s.outAt?(' – '+tclock(s.outAt)):' – now')+(s.desc?(' · '+esc(s.desc)):'')+' '+badge+'</span>'+
+          '<span class="h">'+dur(s.minutes)+'</span></div>';
+      }).join("")+'</div>';
+  });
+  el.innerHTML=html;
+}
+
+/* ---------- Jobs by status ---------- */
+function renderJobs(){
+  var el=document.getElementById("v-jobs");
+  var crews=["All"].concat(DATA.crew);
+  var chips='<div class="chips">'+crews.map(function(c){return '<div class="chip '+(c===jobCrewFilter?"on":"")+'" onclick="setJobFilter(\''+esc(c)+'\')">'+esc(c)+'</div>';}).join("")+'</div>';
+  var jobs=DATA.jobs.filter(function(j){ return jobCrewFilter==="All" || (j.allocatedTo||"")===jobCrewFilter; });
+  var buckets={todo:[],prog:[],done:[]};
+  jobs.forEach(function(j){ buckets[jobBucket(j.status)].push(j); });
+  function col(key,label){
+    var arr=buckets[key];
+    return '<div class="jobcol '+key+'"><h3>'+label+' <span class="n">'+arr.length+'</span></h3>'+
+      (arr.length? arr.slice(0,60).map(function(j){
+        return '<div class="job '+key+'"><div class="jv">'+esc(j.vessel)+'</div>'+
+          '<div class="jt">'+esc(j.task||j.desc||"(job)")+'</div>'+
+          (j.task&&j.desc?('<div class="jd">'+esc(j.desc)+'</div>'):'')+
+          '<div class="ja">'+(j.allocatedTo?('→ '+esc(j.allocatedTo)):'unallocated')+'</div></div>';
+      }).join("") + (arr.length>60?'<div class="empty" style="padding:10px">+ '+(arr.length-60)+' more</div>':'')
+      : '<div class="empty" style="padding:16px">None</div>')+'</div>';
+  }
+  el.innerHTML=chips+'<div class="jobcols">'+col("todo","To do")+col("prog","In progress")+col("done","Done")+'</div>';
+}
+function setJobFilter(c){ jobCrewFilter=c; renderJobs(); }
+
+/* ---------- By crew (drill-down) ---------- */
+function renderCrew(){
+  var el=document.getElementById("v-crew");
+  var opts=DATA.crew.map(function(c){return '<option>'+esc(c)+'</option>';}).join("");
+  el.innerHTML='<select class="crewsel" id="crewPick" onchange="renderCrewDetail()"><option value="">Choose a crew member…</option>'+opts+'</select><div id="crewDetail"></div>';
+}
+function renderCrewDetail(){
+  var name=document.getElementById("crewPick").value; var d=document.getElementById("crewDetail");
+  if(!name){ d.innerHTML=''; return; }
+  var shifts=DATA.shifts.filter(function(s){return (s.crew||"").toLowerCase().indexOf(name.toLowerCase())>=0;});
+  var jobs=DATA.jobs.filter(function(j){return (j.allocatedTo||"")===name;});
+  var tot=shifts.reduce(function(a,s){return a+(s.minutes||0);},0);
+  var html='<h2 class="sec">Today — '+esc(name)+' · '+dur(tot)+'</h2>';
+  html+= shifts.length? '<div class="card">'+shifts.map(function(s){
+    return '<div class="shift"><span class="v">'+esc(s.vessel)+'</span><span class="d">'+tclock(s.inAt)+(s.outAt?(' – '+tclock(s.outAt)):' – now')+(s.desc?(' · '+esc(s.desc)):'')+'</span><span class="h">'+dur(s.minutes)+'</span></div>';
+  }).join("")+'</div>' : '<div class="empty">No shifts today.</div>';
+  var buckets={todo:[],prog:[],done:[]}; jobs.forEach(function(j){buckets[jobBucket(j.status)].push(j);});
+  html+='<h2 class="sec">Allocated jobs ('+jobs.length+')</h2>';
+  html+='<div class="jobcols">'+["todo","prog","done"].map(function(k){
+    var lbl={todo:"To do",prog:"In progress",done:"Done"}[k]; var arr=buckets[k];
+    return '<div class="jobcol '+k+'"><h3>'+lbl+' <span class="n">'+arr.length+'</span></h3>'+(arr.length?arr.slice(0,40).map(function(j){
+      return '<div class="job '+k+'"><div class="jv">'+esc(j.vessel)+'</div><div class="jt">'+esc(j.task||j.desc||"(job)")+'</div></div>';
+    }).join(""):'<div class="empty" style="padding:14px">None</div>')+'</div>';
+  }).join("")+'</div>';
+  d.innerHTML=html;
+}
+
+loadAll(); setInterval(loadAll, 30000);
+</script>
+</body>
+</html>
