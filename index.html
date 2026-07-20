@@ -232,6 +232,29 @@
   .aform .hint{font-size:11.5px;color:var(--muted);margin:5px 2px 0;line-height:1.45}
   .aform .save{width:100%;margin-top:18px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:13px;border-radius:11px;cursor:pointer}
   .aform .back{width:100%;margin-top:8px;border:0;background:transparent;color:var(--muted);font-size:13px;padding:8px;cursor:pointer}
+  /* crew onboarding guide + finger signature */
+  .guidewrap{position:fixed;inset:0;z-index:72;background:var(--bg);display:none;flex-direction:column}
+  .guidewrap.show{display:flex}
+  .guidehd{background:var(--navy);color:#fff;padding:13px 14px;display:flex;align-items:center;gap:11px;flex-shrink:0}
+  .guidehd .t{flex:1;min-width:0} .guidehd h3{margin:0;font-size:15px;line-height:1.2} .guidehd p{margin:2px 0 0;font-size:11px;opacity:.82}
+  .guidehd .closeb{margin-left:0;background:rgba(255,255,255,.15);border:0;color:#fff;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0}
+  .guidebody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff}
+  .guideimg{width:100%;display:block}
+  .signcard{background:#fff;border-top:3px solid var(--orange);padding:18px 16px calc(22px + env(safe-area-inset-bottom))}
+  .signcard h4{margin:0 0 6px;font-size:17px;color:var(--navy)}
+  .signcard p.sp{font-size:13px;color:var(--muted);line-height:1.55;margin:0 0 14px}
+  .sigpad{width:100%;height:180px;border:2px dashed var(--line);border-radius:12px;background:#fff;touch-action:none;display:block}
+  .sighint{text-align:center;font-size:11.5px;color:var(--muted);margin:7px 0 0}
+  .sigrow{display:flex;gap:9px;margin-top:12px}
+  .sigrow button{flex:1;border:0;border-radius:11px;padding:13px;font-size:13.5px;font-weight:bold;cursor:pointer}
+  .sigclear{background:#fff;color:var(--muted);border:1px solid var(--line)!important;flex:0 0 34%!important}
+  .sigsave{background:var(--ok);color:#fff}
+  .sigsave:disabled{background:#cdd5e0;cursor:default}
+  .signedbox{background:#e9f6f0;border:1px solid #bfe3d2;border-radius:12px;padding:18px 16px;text-align:center}
+  .signedbox .big{color:var(--ok);font-weight:bold;font-size:15px}
+  .signedbox small{display:block;color:var(--muted);font-size:12px;margin-top:5px}
+  .signedbox img{max-width:230px;width:100%;margin-top:12px;border-bottom:2px solid var(--navy);padding-bottom:4px}
+  .guideprompt{background:#fff5e9;border:1px solid #f0d3ad;color:var(--amber);border-radius:11px;padding:12px 14px;margin:10px 0 4px;font-size:13px;line-height:1.5;cursor:pointer;font-weight:bold}
 
   /* misc */
   .empty{text-align:center;color:var(--muted);font-size:13px;padding:44px 20px;line-height:1.5}
@@ -428,6 +451,15 @@
   <button class="cancel" onclick="closeModal('logModal')">Cancel</button>
 </div></div>
 
+<!-- Crew Onboarding Guide + finger sign-off -->
+<div class="guidewrap" id="guidewrap">
+  <div class="guidehd">
+    <div class="t"><h3>Crew Onboarding Guide</h3><p id="guideSub">Read it through, then sign to accept</p></div>
+    <button class="closeb" onclick="closeGuide()">✕</button>
+  </div>
+  <div class="guidebody" id="guideBody"></div>
+</div>
+
 <!-- Marine HQ crew setup / onboarding (admin preview) -->
 <div class="adminwrap" id="adminwrap">
   <div class="adminhd">
@@ -589,6 +621,7 @@ function doLogin(email, silent){
 function signOut(){ try{localStorage.removeItem("mhq_crew_email");}catch(_){} location.reload(); }
 function enterReal(crew, shift){
   ME = { id:crew.id, name:crew.name, role:crew.role, email:crew.email, vessels:crew.vessels||[], eod:crew.eod||"",
+         signedAt:crew.signedAt||"", signature:crew.signature||"",
          clock:{in:false, at:0, vessel:null, loc:null, shifts:[]} };
   if(shift && shift.open){ ME.clock.in=true; ME.clock.at=shift.inAt; ME.clock.vessel=shift.vessel; ME.clock.loc=shift.loc||""; }
   $("signedInAs").textContent = "Signed in as " + ME.name;
@@ -622,7 +655,8 @@ function renderJobs(){
   var mine=myJobs();
   var first=ME.name.split(" ")[0];
   var open=mine.filter(function(j){return j.status!=="done";}).length;
-  $("jobsHello").innerHTML="Hi <b>"+esc(first)+"</b> — you have <b>"+open+"</b> open "+(open===1?"job":"jobs")+" across "+esc(ME.vessels.join(" & "))+".";
+  $("jobsHello").innerHTML="Hi <b>"+esc(first)+"</b> — you have <b>"+open+"</b> open "+(open===1?"job":"jobs")+" across "+esc(ME.vessels.join(" & "))+"."+
+    (ME.signedAt ? "" : '<div class="guideprompt" onclick="openGuide()">📋 Please read &amp; sign the Crew Onboarding Guide — tap here.</div>');
   var FILTERS=["All","To do","In progress","Done"];
   $("jobChips").innerHTML=FILTERS.map(function(f){return '<div class="chip '+(f===JOBFILTER?"on":"")+'" onclick="setJobFilter(\''+f+'\')">'+f+'</div>';}).join("");
   var list=mine.filter(function(j){ return JOBFILTER==="All"||jobBucket(j.status)===JOBFILTER; });
@@ -830,7 +864,8 @@ function adminList(){
         var inactive = c.active===false;
         return '<div class="acrew" onclick="adminEdit(\''+esc(c.id)+'\')" style="'+(inactive?"opacity:.6":"")+'"><div class="aav">'+esc(initials(c.name))+'</div>'+
           '<div style="flex:1"><h4>'+esc(c.name)+(inactive?' <span style="font-size:11px;font-weight:bold;color:var(--muted);background:#eceff3;padding:2px 7px;border-radius:10px;vertical-align:middle">No access</span>':'')+'</h4><div class="asub">'+esc(c.role)+(c.email?(' · '+esc(c.email)):'')+'</div>'+
-          '<div class="'+(c.eod?"eodok":"eodno")+'">'+(c.eod?"✓ EOD form linked":"• EOD form not linked yet")+'</div></div>'+
+          '<div class="'+(c.eod?"eodok":"eodno")+'">'+(c.eod?"✓ EOD form linked":"• EOD form not linked yet")+'</div>'+
+          '<div class="'+(c.signedAt?"eodok":"eodno")+'">'+(c.signedAt?("✓ Onboarding signed "+esc(c.signedAt)):"• Onboarding guide not signed")+'</div></div>'+
           '<span class="aedit">›</span></div>';
       }).join("")+
       '<div class="acrew" onclick="adminEdit(\'new\')" style="border-style:dashed;color:var(--orange);justify-content:center;font-weight:bold">＋ Onboard a new crew member</div>';
@@ -894,6 +929,55 @@ function renderHours(){
   $("eodSub").innerHTML = "Backup only — your shifts above are the main way to send your day. Same EOD form as before, pre‑filled as <b>"+esc(ME.name)+"</b>.";
 }
 
+/* ===== Crew Onboarding Guide + finger signature ===== */
+var sigCtx=null, sigDrawn=false;
+function openGuide(){
+  var signed = !!(ME && ME.signedAt);
+  $("guideSub").textContent = signed ? ("Signed " + ME.signedAt) : "Read it through, then sign to accept";
+  var signHTML = signed
+    ? '<div class="signcard"><div class="signedbox"><div class="big">✓ Signed &amp; accepted</div>'+
+      '<small>'+esc(ME.name)+' — '+esc(ME.signedAt)+'</small>'+
+      (ME.signature?('<img src="'+esc(ME.signature)+'" alt="signature">'):'')+
+      '<small>You confirmed you have read, understood and accept this guide.</small></div></div>'
+    : '<div class="signcard"><h4>Sign to accept</h4>'+
+      '<p class="sp">I confirm I have <b>read, understood and accept</b> the Marine HQ Crew Onboarding Guide above — including the daily photo check‑in (clock on / clock off at every vessel) and submitting an EOD report per vessel, per day.</p>'+
+      '<canvas class="sigpad" id="sigpad"></canvas>'+
+      '<p class="sighint">✍️ Sign above with your finger</p>'+
+      '<div class="sigrow"><button class="sigclear" onclick="clearSig()">Clear</button>'+
+      '<button class="sigsave" id="sigSave" disabled onclick="signAccept()">I have read, understood &amp; accept</button></div></div>';
+  $("guideBody").innerHTML = '<img class="guideimg" src="crew-guide.png" alt="Marine HQ Crew Onboarding Guide">' + signHTML;
+  $("guidewrap").classList.add("show");
+  $("guideBody").scrollTop = 0;
+  if(!signed) setTimeout(initSigPad, 60);
+}
+function closeGuide(){ $("guidewrap").classList.remove("show"); }
+function initSigPad(){
+  var c=$("sigpad"); if(!c) return;
+  var rect=c.getBoundingClientRect();
+  c.width=Math.round(rect.width*2); c.height=Math.round(rect.height*2);
+  var ctx=c.getContext("2d"); ctx.scale(2,2);
+  ctx.lineWidth=2.5; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#1A2B5C";
+  sigCtx=ctx; sigDrawn=false;
+  var drawing=false, last=null;
+  function pos(e){ var r=c.getBoundingClientRect(); var t=(e.touches&&e.touches[0])||e; return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+  function start(e){ e.preventDefault(); drawing=true; last=pos(e); }
+  function move(e){ if(!drawing)return; e.preventDefault(); var p=pos(e);
+    ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p;
+    if(!sigDrawn){ sigDrawn=true; var b=$("sigSave"); if(b) b.disabled=false; } }
+  function end(){ drawing=false; }
+  c.addEventListener("mousedown",start); c.addEventListener("mousemove",move); window.addEventListener("mouseup",end);
+  c.addEventListener("touchstart",start,{passive:false}); c.addEventListener("touchmove",move,{passive:false}); c.addEventListener("touchend",end);
+}
+function clearSig(){ var c=$("sigpad"); if(!c||!sigCtx)return; sigCtx.clearRect(0,0,c.width,c.height); sigDrawn=false; var b=$("sigSave"); if(b) b.disabled=true; }
+function signAccept(){
+  if(!sigDrawn){ toast("Please sign in the box first"); return; }
+  var b=$("sigSave"); if(b){ b.textContent="Saving…"; b.disabled=true; }
+  apiPost({action:"crewSignOnboarding", email:ME.email, signature:$("sigpad").toDataURL("image/png")}).then(function(j){
+    if(j&&j.ok){ ME.signedAt=j.signedAt; ME.signature=j.signature; toast("✓ Signed — thanks, that's on record"); openGuide(); renderSOP(); renderJobs(); }
+    else { toast((j&&j.error)||"Couldn’t save"); if(b){ b.textContent="I have read, understood & accept"; b.disabled=false; } }
+  }).catch(function(){ toast("Couldn’t connect"); if(b){ b.textContent="I have read, understood & accept"; b.disabled=false; } });
+}
+
 /* ===== today's shifts (real — from the Crew Clock tab) ===== */
 var SHIFTS = [], editShiftId = null;
 function loadShifts(){
@@ -951,7 +1035,12 @@ function sendMyDay(){
 
 /* ================= SOP ================= */
 function renderSOP(){
-  $("sopList").innerHTML=SOP.map(function(s){
+  var signed = !!(ME && ME.signedAt);
+  var guideCard = '<div class="sopitem" onclick="openGuide()" style="border-left:4px solid var(--orange)">'+
+    '<div class="ic">📋</div><div style="flex:1"><h3>Crew Onboarding Guide</h3>'+
+    '<div class="sub">'+(signed ? ('✓ Signed '+esc(ME.signedAt)) : 'Read &amp; sign to accept')+'</div></div>'+
+    '<div class="chev">›</div></div>';
+  $("sopList").innerHTML = guideCard + SOP.map(function(s){
     return '<div class="sopitem" onclick="openSOP(\''+s.id+'\')"><div class="ic">'+s.icon+'</div>'+
       '<div style="flex:1"><h3>'+esc(s.title)+'</h3><div class="sub">'+esc(s.sub)+'</div></div><div class="chev">›</div></div>';
   }).join("");
