@@ -56,12 +56,24 @@
   .empty{text-align:center;color:var(--muted);font-size:13px;padding:34px 20px;line-height:1.5}
   .spin{text-align:center;color:var(--muted);padding:40px;font-size:13px}
   select.crewsel{border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit;background:#fff;margin-bottom:12px;width:100%;max-width:320px}
-  .gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy),var(--navy2));display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
-  .gate .g{background:#fff;border-radius:16px;padding:26px 22px;max-width:340px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)}
-  .gate .l{width:40px;height:40px;border-radius:10px;background:var(--orange);color:#fff;font-weight:bold;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
-  .gate h3{margin:0 0 4px;color:var(--navy)} .gate p{font-size:12.5px;color:var(--muted);margin:0 0 16px}
-  .gate input{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;text-align:center;font-family:inherit}
-  .gate button{width:100%;margin-top:12px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:12px;border-radius:10px;cursor:pointer}
+  /* branded gate — same family as the MyYacht owner login */
+  .gate{position:fixed;inset:0;background:#101B3A;display:none;flex-direction:column;overflow-y:auto;z-index:50}
+  .gate.show{display:flex}
+  .gatehero{flex:1 0 auto;display:flex;align-items:center;justify-content:center;padding:26px 20px 34px;
+    background:linear-gradient(160deg, rgba(16,27,58,.88) 0%, rgba(26,43,92,.72) 55%, rgba(16,27,58,.94) 100%),
+      url("everywhen.jpg") center 40%/cover no-repeat, #101B3A;}
+  .gate .g{background:rgba(255,255,255,.98);border-radius:18px;box-shadow:0 20px 60px rgba(5,12,35,.55);padding:40px 34px 32px;max-width:410px;width:100%;text-align:center;border-top:4px solid var(--orange)}
+  .gate .eyebrow{font-size:11px;font-weight:bold;letter-spacing:4px;color:var(--orange);margin-bottom:6px}
+  .gate h3{margin:0 0 4px;color:var(--navy);font-size:34px;font-weight:900;letter-spacing:-.5px}
+  .gate .tagline{margin:0 0 26px;color:var(--muted);font-size:13px;font-style:italic}
+  .gate .sub{font-size:12px;color:var(--muted);margin:0 0 10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:bold}
+  .gate input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:14px;font-size:15px;text-align:center;font-family:inherit}
+  .gate input:focus{outline:none;border-color:var(--orange)}
+  .gate button{width:100%;margin-top:12px;border:0;background:var(--orange);color:#fff;font-weight:bold;font-size:15px;padding:14px;border-radius:11px;cursor:pointer}
+  .gate .contact{margin-top:22px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .gate .contact b{color:var(--orange)}
+  .footer-banner{width:100%;background:#1B3A6B;line-height:0}
+  .footer-banner img{width:100%;display:block}
   .hidden{display:none!important}
 </style>
 </head>
@@ -80,13 +92,22 @@
   <div id="v-jobs" class="hidden"></div>
   <div id="v-crew" class="hidden"></div>
 </div>
+<div class="footer-banner"><img src="footer-banner.jpg" alt="Marine HQ — 0439 748 387 · yachtsupport@marinehq.com.au"></div>
 
-<div class="gate" id="gate">
-  <div class="g"><div class="l">HQ</div><h3>Marine HQ — Crew Command</h3>
-    <p>Enter your Marine HQ passcode to open the command centre.</p>
-    <input id="gk" type="password" placeholder="Passcode" onkeydown="if(event.key==='Enter')unlock()">
-    <button onclick="unlock()">Open</button>
+<div class="gate show" id="gate">
+  <div class="appbanner"><img src="banner.jpg" alt="Marine HQ — Vessel Management &amp; Marine Services"></div>
+  <div class="gatehero">
+    <div class="g">
+      <div class="eyebrow">MARINE HQ</div>
+      <h3>Crew Command</h3>
+      <p class="tagline">Everyone. Everything. Live.</p>
+      <div class="sub">Enter your passcode</div>
+      <input id="gk" type="password" placeholder="Passcode" onkeydown="if(event.key==='Enter')unlock()">
+      <button onclick="unlock()">Open the command centre</button>
+      <p class="contact">Need a hand? We're always here.<br><b>0439 748 387</b> · <b>yachtsupport@marinehq.com.au</b></p>
+    </div>
   </div>
+  <div class="footer-banner"><img src="footer-banner.jpg" alt="Marine HQ"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -101,16 +122,16 @@ function tclock(ms){var d=new Date(ms),h=d.getHours(),m=d.getMinutes(),ap=h<12?"
 function dur(mins){var h=Math.floor(mins/60),m=mins%60;return (h?h+"h ":"")+m+"m";}
 function get(fn){return fetch(API+"?fn="+fn+"&key="+encodeURIComponent(KEY)+"&_="+Date.now()).then(function(r){return r.json();});}
 
-function unlock(){var v=(document.getElementById("gk").value||"").trim();if(!v)return;KEY=v;try{localStorage.setItem("mhq_crew_key",v);}catch(e){}document.getElementById("gate").style.display="none";loadAll();}
+function unlock(){var v=(document.getElementById("gk").value||"").trim();if(!v)return;KEY=v;try{localStorage.setItem("mhq_crew_key",v);}catch(e){}document.getElementById("gate").classList.remove("show");loadAll();}
 function go(t){TAB=t;["now","shifts","jobs","crew"].forEach(function(x){document.getElementById("v-"+x).classList.toggle("hidden",x!==t);});
   document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("on",b.dataset.t===t);});
   if(t==="now") setTimeout(function(){ if(map) map.invalidateSize(); },100);}
 
 function loadAll(){
-  if(!KEY){document.getElementById("gate").style.display="flex";return;}
+  if(!KEY){document.getElementById("gate").classList.add("show");return;}
   document.getElementById("v-now").innerHTML='<div class="spin">Loading…</div>';
   Promise.all([get("crewonshift"),get("crewallshifts"),get("hub"),get("crewlist")]).then(function(res){
-    if((res[0]&&res[0].locked)||(res[3]&&res[3].locked)){KEY="";try{localStorage.removeItem("mhq_crew_key");}catch(e){}document.getElementById("gate").style.display="flex";return;}
+    if((res[0]&&res[0].locked)||(res[3]&&res[3].locked)){KEY="";try{localStorage.removeItem("mhq_crew_key");}catch(e){}document.getElementById("gate").classList.add("show");return;}
     DATA.onShift=(res[0]&&res[0].onShift)||[];
     DATA.shifts=(res[1]&&res[1].shifts)||[];
     DATA.jobs=(res[2]&&res[2].jobs)||[];
