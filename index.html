@@ -368,7 +368,7 @@
     <!-- CHECKLISTS -->
     <div id="tab-check" class="hidden">
       <div class="subbar"><h2>Checklists</h2><span class="count" id="clCount"></span></div>
-      <p class="hello">Work through a checklist, tick each item, then sign it off. Tap <b>the SOP</b> tab any time for how‑to detail.</p>
+      <p class="hello">Tap a checklist to open it and sign it off — right here in the app. Tap <b>the SOP</b> tab any time for how‑to detail.</p>
       <div id="clList"></div>
     </div>
 
@@ -450,6 +450,15 @@
   <button class="go" onclick="submitLog()">Send to Marine HQ</button>
   <button class="cancel" onclick="closeModal('logModal')">Cancel</button>
 </div></div>
+
+<!-- Checklist form viewer (opens Marine HQ's real forms in-app) -->
+<div class="eodwrap" id="formwrap">
+  <div class="eodhd">
+    <div class="t"><h3 id="formTitle">Checklist</h3><p id="formSub"></p></div>
+    <button class="closeb" onclick="closeForm()">✕</button>
+  </div>
+  <div class="eodframe" id="formFrame"></div>
+</div>
 
 <!-- Crew Onboarding Guide + finger sign-off -->
 <div class="guidewrap" id="guidewrap">
@@ -640,12 +649,13 @@ function go(tab){
   var titles={jobs:["Crew Portal","Your jobs, checklists & hours"],check:["Checklists","Tick & sign off"],hours:["Time clock","Clock in · EOD · hours"],sop:["SOP & guides","Marine HQ standards"]};
   $("hdrTitle").textContent=titles[tab][0]; $("hdrSub").textContent=titles[tab][1];
   if(tab==="hours"){ renderClock(); loadShifts(); }
+  if(tab==="check") loadChecklists();
   updateStrip();
   window.scrollTo(0,0);
 }
 function refreshAll(){
   $("hdrAv").textContent=initials(ME.name);
-  renderJobs(); renderChecklists(); renderHours(); renderClock(); renderSOP(); updateStrip();
+  renderJobs(); renderChecklists(); loadChecklists(); renderHours(); renderClock(); renderSOP(); updateStrip();
 }
 
 /* ================= JOBS ================= */
@@ -734,18 +744,45 @@ function addPhoto(id){
 }
 
 /* ================= CHECKLISTS ================= */
+/* ---- real checklists (Marine HQ forms, managed in the Crew Checklists tab) ---- */
+var CHECKLISTS_REAL = [];
+function loadChecklists(){
+  apiGet("fn=crewchecklists").then(function(j){ CHECKLISTS_REAL=(j&&j.checklists)||[]; renderChecklists(); }).catch(function(){});
+}
+function myChecklists(){
+  return CHECKLISTS_REAL.filter(function(c){
+    var v=(c.vessel||"All").toLowerCase();
+    if(v==="all") return true;
+    return (ME.vessels||[]).some(function(x){ return x.toLowerCase()===v; });
+  });
+}
 function renderChecklists(){
-  $("clCount").textContent=CHECKLISTS.length+" available";
-  $("clList").innerHTML=CHECKLISTS.map(function(cl){
-    var st=clState(cl); var done=st.checked, total=cl.items.length, pct=Math.round(done/total*100);
-    var right = st.signedBy ? '<span class="signed">✓ Signed</span>' : '<span class="prog">'+done+'/'+total+'</span>';
-    return '<div class="clcard" onclick="openChecklist(\''+cl.id+'\')">'+
-      '<div class="ic">'+cl.icon+'</div>'+
-      '<div class="body"><div style="display:flex;align-items:center"><h3 style="flex:1">'+esc(cl.title)+'</h3>'+right+'</div>'+
-      '<div class="sub">'+esc(cl.vessel)+'</div>'+
-      '<div class="clbar"><i style="width:'+pct+'%"></i></div></div></div>';
+  var list=myChecklists();
+  $("clCount").textContent=list.length+" available";
+  if(!list.length){ $("clList").innerHTML='<div class="empty">No checklists right now.<br>Marine HQ will add them here.</div>'; return; }
+  $("clList").innerHTML=list.map(function(c){
+    return '<div class="clcard" onclick="openChecklistForm(\''+esc(c.id)+'\')">'+
+      '<div class="ic">📋</div>'+
+      '<div class="body"><h3>'+esc(c.title)+'</h3>'+
+      '<div class="sub">'+esc(c.notes || (c.vessel==="All"?"Tap to open &amp; sign off":c.vessel))+'</div>'+
+      (c.vessel && c.vessel!=="All" ? '<div class="sub" style="color:var(--orange);font-weight:bold">'+esc(c.vessel)+'</div>' : '')+
+      '</div><span style="color:var(--orange);font-size:20px">›</span></div>';
   }).join("");
 }
+function openChecklistForm(id){
+  var c=CHECKLISTS_REAL.filter(function(x){return x.id===id;})[0]; if(!c)return;
+  $("formTitle").textContent=c.title;
+  $("formSub").textContent=(c.vessel && c.vessel!=="All" ? (c.vessel+" · ") : "")+(c.notes||"");
+  // fallback bar — if the form can't load inside the app (poor signal / blocked
+  // frame), crew can still open it straight in their browser.
+  $("formFrame").innerHTML=
+    '<div style="background:#eef2f8;border-bottom:1px solid var(--line);padding:9px 13px;font-size:12px;color:var(--muted);text-align:center">'+
+      'Form not loading? <a href="'+esc(c.link)+'" target="_blank" rel="noopener" style="color:var(--navy);font-weight:bold">Open it in your browser ↗</a>'+
+    '</div>'+
+    '<iframe src="'+esc(c.link)+'" title="'+esc(c.title)+'" style="height:calc(100% - 38px)"></iframe>';
+  $("formwrap").classList.add("show");
+}
+function closeForm(){ $("formwrap").classList.remove("show"); $("formFrame").innerHTML=""; }
 /* per-crew checklist state kept on the object keyed by crew id */
 function clState(cl){ cl._state=cl._state||{}; cl._state[ME.id]=cl._state[ME.id]||{ticks:{},signedBy:null,signedAt:null}; var s=cl._state[ME.id]; s.checked=Object.keys(s.ticks).filter(function(k){return s.ticks[k];}).length; return s; }
 function openChecklist(id){
